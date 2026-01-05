@@ -1,0 +1,430 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0b0b0d;
+  --card: #0f1113;
+  --muted: #9aa4b2;
+  --accent: #8f4bff;
+}
+
+html,body,#root{
+  height:100%;
+}
+
+body{
+  @apply bg-gradient-to-b from-[#070708] via-[#0b0b0d] to-[#0b0b10] text-gray-100 font-sans;
+  background-color: var(--bg);
+}
+
+.app-shell{
+  @apply min-h-screen flex flex-col items-center p-6 gap-6;
+}
+
+.card{
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.04);
+  @apply rounded-2xl p-4 shadow-xl;
+}
+
+.large-card{
+  @apply w-full max-w-3xl p-6 rounded-3xl;
+}
+
+.pill{
+  @apply inline-flex items-center justify-center rounded-full px-3 py-1 text-sm;
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Title Screen */
+.title-screen-image {
+  max-width: 600px;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.lobby-title-screen {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* ===== MULTIPLAYER STYLES ===== */
+/* Mode Selection */
+.mode-selection {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background-image: url('/assets/backgrounds/title-screen.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.mode-selection__content {
+  position: relative;
+  width: min(980px, 92vw);
+  padding: 1.5rem 1rem 2.5rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
+  backdrop-filter: blur(2px);
+}
+
+.mode-selection__logo {
+  display: none;
+}
+
+.mode-selection__header {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 1.1rem;
+}
+
+.mode-selection__title {
+  color: #d4af37;
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  border: 2px solid rgba(212, 175, 55, 0.5);
+  background: rgba(20, 15, 10, 0.8);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.3),
+              inset 0 1px 0 rgba(212, 175, 55, 0.2);
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+.mode-selection__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.1rem;
+}
+
+.mode-card {
+  text-align: center;
+  background: linear-gradient(135deg, rgba(20, 15, 10, 0.9) 0%, rgba(30, 20, 15, 0.85) 100%);
+  border-radius: 8px;
+  border: 2px solid rgba(212, 175, 55, 0.4);
+  padding: 1.5rem 1.25rem;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7),
+              inset 0 1px 0 rgba(212, 175, 55, 0.1),
+              0 0 30px rgba(212, 175, 55, 0.15);
+  backdrop-filter: blur(12px);
+  transition: all 300ms ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+  transition: left 600ms ease;
+}
+
+.mode-card:hover::before {
+  left: 100%;
+}
+
+.mode-card--primary {
+  border-color: rgba(212, 175, 55, 0.7);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7),
+              inset 0 1px 0 rgba(212, 175, 55, 0.2),
+              0 0 40px rgba(212, 175, 55, 0.3);
+}
+
+.mode-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(212, 175, 55, 0.8);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8),
+              inset 0 1px 0 rgba(212, 175, 55, 0.3),
+              0 0 50px rgba(212, 175, 55, 0.4);
+}
+
+.mode-card:focus-visible {
+  outline: 2px solid rgba(248, 250, 252, 0.8);
+  outline-offset: 3px;
+}
+
+.mode-card__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.6rem;
+  color: #d4af37;
+  text-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+  position: relative;
+  z-index: 1;
+}
+
+.mode-card__desc {
+  color: rgba(200, 190, 170, 0.85);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-card {
+    transition: none;
+  }
+  .mode-card:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .mode-selection__grid {
+    grid-template-columns: 1fr;
+  }
+  .mode-selection__content {
+    padding: 1rem 0.75rem 1.5rem;
+  }
+}
+
+/* ===== GAME COMPONENT STYLES ===== */
+
+/* Banner / Title */
+.banner-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.banner-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(143, 75, 255, 0.2), transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.banner-title {
+  position: relative;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #a78bfa 0%, #8f4bff 50%, #c084fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 40px rgba(143, 75, 255, 0.5);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));
+}
+
+/* Ingredient Cards */
+.ingredient-card {
+  position: relative;
+  width: 280px;
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 2px solid;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ingredient-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  background-image: 
+    repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.03) 10px, rgba(255,255,255,0.03) 20px);
+  pointer-events: none;
+}
+
+.ingredient-card--pure {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.1), rgba(16, 185, 129, 0.05));
+  border-color: rgba(52, 211, 153, 0.4);
+  box-shadow: 0 4px 20px rgba(52, 211, 153, 0.2);
+}
+
+.ingredient-card--corrupt {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(185, 28, 28, 0.05));
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.2);
+}
+
+.ingredient-card:hover {
+  transform: translateY(-4px);
+}
+
+.ingredient-card--pure:hover {
+  box-shadow: 0 8px 30px rgba(52, 211, 153, 0.3);
+}
+
+.ingredient-card--corrupt:hover {
+  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.3);
+}
+
+.ingredient-card__icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.ingredient-card__icon {
+  font-size: 3rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.ingredient-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.ingredient-card__name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.ingredient-card__effect {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  font-style: italic;
+}
+
+.ingredient-card__flavor {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  line-height: 1.4;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ingredient-card__corruption {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.ingredient-card--pure .ingredient-card__corruption {
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.ingredient-card--corrupt .ingredient-card__corruption {
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Corruption Meter */
+.corruption-meter {
+  width: 100%;
+  max-width: 500px;
+}
+
+.corruption-meter__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.corruption-meter__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.corruption-meter__value {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  transition: color 0.3s ease;
+}
+
+.corruption-meter__value--danger {
+  color: #ef4444;
+  animation: pulse-danger 2s ease-in-out infinite;
+}
+
+.corruption-meter__track {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.corruption-meter__fill {
+  position: relative;
+  height: 100%;
+  background: linear-gradient(90deg, #f97316, #dc2626, #991b1b);
+  border-radius: 999px;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+  transition: background 0.3s ease;
+}
+
+.corruption-meter__fill--danger {
+  background: linear-gradient(90deg, #dc2626, #991b1b, #7f1d1d);
+}
+
+.corruption-meter__pulse {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: pulse-fill 2s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes pulse-fill {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+
+/* Phase Screens Background Enhancement */
+.app-shell {
+  background-image: 
+    radial-gradient(ellipse at top, rgba(88, 28, 135, 0.15), transparent 50%),
+    radial-gradient(ellipse at bottom, rgba(30, 27, 75, 0.2), transparent 50%);
+}
