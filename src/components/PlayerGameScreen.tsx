@@ -383,17 +383,7 @@ export function PlayerGameScreen({
                 color: '#fca5a5',
                 textAlign: 'center',
               }}>
-                💡 High corruption (>15%) = Kill vote | Low corruption = Save vote
-              </div>
-            </div>
-          )}
-
-          {/* OFFERING PHASE - Waiting */}
-          {phase === Phase.OFFERING && (
-            <div style={{
-              backgroundColor: 'rgba(10, 10, 30, 0.8)',
-              border: '2px solid rgba(212, 175, 55, 0.6)',
-              borderRadius: '12px',
+              💡 High corruption (&gt;15%) = Kill vote | Low corruption = Save vote
               padding: '40px 20px',
               textAlign: 'center',
               backdropFilter: 'blur(10px)',
