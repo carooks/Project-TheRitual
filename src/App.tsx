@@ -386,6 +386,7 @@ export default function App() {
           players={multiplayer.room.players}
           onStartGame={handleStartGame}
           onCancel={handleLeave}
+          onToggleReady={(playerId) => multiplayer.toggleReady(playerId)}
         />
       )}
 

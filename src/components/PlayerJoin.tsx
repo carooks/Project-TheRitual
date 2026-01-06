@@ -32,11 +32,15 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
 
   const handleSelectWitchyName = (name: string) => {
     setPlayerName(name);
+    setInputName(name);
     setShowGenerator(false);
   };
 
   const handleManualName = () => {
-    setPlayerName(inputName);
+    const cleanName = inputName.trim();
+    if (!cleanName) return;
+    setPlayerName(cleanName);
+    setInputName(cleanName);
     setShowGenerator(false);
   };
 
@@ -66,35 +70,36 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'linear-gradient(135deg, rgba(5, 8, 20, 0.9), rgba(20, 10, 30, 0.9))',
-        backdropFilter: 'blur(4px)',
+        background: 'linear-gradient(135deg, rgba(10, 5, 0, 0.9), rgba(25, 12, 3, 0.92))',
+        backdropFilter: 'blur(6px)',
         pointerEvents: 'none',
       }} />
       <div style={{
         position: 'relative',
-        background: 'linear-gradient(145deg, rgba(10, 16, 32, 0.9), rgba(6, 10, 20, 0.95))',
-        border: '2px solid #14b8a6',
+        background: 'linear-gradient(145deg, rgba(20, 15, 10, 0.95), rgba(30, 20, 15, 0.92))',
+        border: '2px solid rgba(139, 87, 42, 0.7)',
         borderRadius: '16px',
         padding: 'clamp(18px, 4.5vw, 40px)',
-        maxWidth: '500px',
-        width: '90%',
+        maxWidth: '520px',
+        width: '92%',
         maxHeight: 'calc(100vh - 32px)',
         overflowY: 'auto',
-        boxShadow: '0 0 40px rgba(20, 184, 166, 0.35)',
+        boxShadow: '0 12px 48px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(212, 175, 55, 0.25)',
       }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <h1 style={{
             fontSize: 'clamp(22px, 6vw, 32px)',
-            fontWeight: 'bold',
-            color: '#14b8a6',
+            fontWeight: '700',
+            color: '#d4af37',
             marginBottom: '8px',
-            textShadow: '0 0 20px rgba(20, 184, 166, 0.5)',
+            textShadow: '0 0 20px rgba(212, 175, 55, 0.6)',
+            letterSpacing: '0.08em',
           }}>
-            📱 Join Game
+            📱 Join the Ritual
           </h1>
-          <p style={{ color: '#94a3b8', fontSize: '14px' }}>
-            Enter the room code from your host
+          <p style={{ color: 'rgba(200, 190, 170, 0.78)', fontSize: '14px', letterSpacing: '0.03em' }}>
+            Enter the room code bestowed by the host
           </p>
         </div>
 
@@ -104,12 +109,12 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
             <div style={{
               marginBottom: '16px',
               padding: '12px',
-              background: 'rgba(20, 184, 166, 0.1)',
+              background: 'rgba(212, 175, 55, 0.08)',
               borderRadius: '8px',
-              border: '1px solid rgba(20, 184, 166, 0.3)',
+              border: '1px solid rgba(212, 175, 55, 0.3)',
               textAlign: 'center',
             }}>
-              <div style={{ fontSize: '12px', color: '#14b8a6', fontWeight: '600' }}>
+              <div style={{ fontSize: '12px', color: '#d4af37', fontWeight: '600', letterSpacing: '0.08em' }}>
                 ✓ Room code detected from link
               </div>
             </div>
@@ -118,10 +123,11 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
           <div style={{ marginBottom: '24px' }}>
             <label style={{
               display: 'block',
-              color: '#14b8a6',
+              color: '#d4af37',
               fontSize: '14px',
               fontWeight: '600',
               marginBottom: '8px',
+              letterSpacing: '0.05em',
             }}>
               Room Code
             </label>
@@ -133,17 +139,18 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
               maxLength={6}
               style={{
                 width: '100%',
-                backgroundColor: '#111827',
-                border: '2px solid #14b8a6',
+                background: 'linear-gradient(135deg, rgba(12, 7, 3, 0.95), rgba(8, 4, 2, 0.9))',
+                border: '2px solid rgba(139, 87, 42, 0.7)',
                 borderRadius: '8px',
                 padding: '14px 12px',
-                fontSize: 'clamp(18px, 6vw, 24px)',
+                fontSize: 'clamp(20px, 6vw, 26px)',
                 fontFamily: 'monospace',
-                letterSpacing: '0.18em',
+                letterSpacing: '0.2em',
                 textAlign: 'center',
-                color: '#14b8a6',
+                color: '#d4af37',
                 textTransform: 'uppercase',
                 boxSizing: 'border-box',
+                textShadow: '0 0 12px rgba(212, 175, 55, 0.4)',
               }}
               autoFocus={!initialRoomCode}
             />
@@ -152,10 +159,11 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
           <div style={{ marginBottom: '24px' }}>
             <label style={{
               display: 'block',
-              color: '#14b8a6',
+              color: '#d4af37',
               fontSize: '14px',
               fontWeight: '600',
               marginBottom: '8px',
+              letterSpacing: '0.05em',
             }}>
               Your Name
             </label>
@@ -167,12 +175,12 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
               maxLength={20}
               style={{
                 width: '100%',
-                backgroundColor: '#111827',
-                border: '2px solid #14b8a6',
+                backgroundColor: 'rgba(12, 7, 3, 0.85)',
+                border: '2px solid rgba(139, 87, 42, 0.7)',
                 borderRadius: '8px',
                 padding: '12px 16px',
                 fontSize: '16px',
-                color: '#f1f5f9',
+                color: '#f8eedb',
                 boxSizing: 'border-box',
                 marginBottom: '12px',
               }}
@@ -191,7 +199,7 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    color: '#94a3b8',
+                    color: 'rgba(200, 190, 170, 0.8)',
                     fontSize: '12px',
                     cursor: 'pointer',
                   }}>
@@ -210,15 +218,17 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
                     onClick={handleGenerateNames}
                     style={{
                       flex: 1,
-                      backgroundColor: '#4c1d95',
+                      background: 'linear-gradient(135deg, rgba(76, 37, 16, 0.95), rgba(60, 25, 10, 0.95))',
                       color: '#d4af37',
-                      border: '2px solid #d4af37',
+                      border: '2px solid rgba(212, 175, 55, 0.6)',
                       borderRadius: '8px',
                       padding: '10px',
                       fontSize: '14px',
                       fontWeight: '600',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
+                      letterSpacing: '0.05em',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
                     }}
                   >
                     ✨ Generate Witchy Name
@@ -228,9 +238,9 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
                     onClick={handleManualName}
                     style={{
                       flex: 1,
-                      backgroundColor: '#1e293b',
-                      color: '#94a3b8',
-                      border: '2px solid #334155',
+                      backgroundColor: 'rgba(30, 20, 15, 0.8)',
+                      color: 'rgba(200, 190, 170, 0.85)',
+                      border: '2px solid rgba(139, 87, 42, 0.4)',
                       borderRadius: '8px',
                       padding: '10px',
                       fontSize: '14px',
@@ -248,11 +258,12 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
             {/* Generated Names Selection */}
             {showGenerator && (
               <div style={{
-                backgroundColor: '#1a1a2e',
-                border: '2px solid #d4af37',
+                background: 'linear-gradient(135deg, rgba(18, 12, 6, 0.9), rgba(25, 15, 8, 0.9))',
+                border: '2px solid rgba(212, 175, 55, 0.5)',
                 borderRadius: '12px',
                 padding: '16px',
                 marginBottom: '12px',
+                boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.5)',
               }}>
                 <div style={{
                   color: '#d4af37',
@@ -270,9 +281,9 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
                       type="button"
                       onClick={() => handleSelectWitchyName(name)}
                       style={{
-                        backgroundColor: '#2d1b4e',
-                        color: '#f1f5f9',
-                        border: '2px solid #d4af37',
+                        backgroundColor: 'rgba(35, 22, 12, 0.85)',
+                        color: '#f5e1c0',
+                        border: '2px solid rgba(212, 175, 55, 0.6)',
                         borderRadius: '8px',
                         padding: '12px',
                         fontSize: '15px',
@@ -282,11 +293,11 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
                         textAlign: 'left',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#4c1d95';
-                        e.currentTarget.style.boxShadow = '0 0 15px rgba(212, 175, 55, 0.4)';
+                        e.currentTarget.style.backgroundColor = 'rgba(50, 32, 18, 0.95)';
+                        e.currentTarget.style.boxShadow = '0 0 15px rgba(212, 175, 55, 0.35)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#2d1b4e';
+                        e.currentTarget.style.backgroundColor = 'rgba(35, 22, 12, 0.85)';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
@@ -300,9 +311,9 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
                   style={{
                     width: '100%',
                     marginTop: '12px',
-                    backgroundColor: '#1e293b',
-                    color: '#94a3b8',
-                    border: '2px solid #334155',
+                    backgroundColor: 'rgba(30, 20, 15, 0.8)',
+                    color: 'rgba(200, 190, 170, 0.85)',
+                    border: '2px solid rgba(139, 87, 42, 0.4)',
                     borderRadius: '8px',
                     padding: '8px',
                     fontSize: '12px',
@@ -318,16 +329,17 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
             {/* Selected Name Display */}
             {playerName && (
               <div style={{
-                backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                border: '2px solid #d4af37',
+                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(120, 80, 30, 0.25))',
+                border: '2px solid rgba(212, 175, 55, 0.6)',
                 borderRadius: '8px',
                 padding: '12px',
                 textAlign: 'center',
+                boxShadow: 'inset 0 1px 6px rgba(0, 0, 0, 0.4)',
               }}>
                 <div style={{ fontSize: '12px', color: '#d4af37', marginBottom: '4px' }}>
                   Your Witchy Name:
                 </div>
-                <div style={{ fontSize: '18px', color: '#f1f5f9', fontWeight: 'bold' }}>
+                <div style={{ fontSize: '18px', color: '#f8eedb', fontWeight: 'bold' }}>
                   {playerName}
                 </div>
                 <button
@@ -339,7 +351,7 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
                   style={{
                     marginTop: '8px',
                     backgroundColor: 'transparent',
-                    color: '#94a3b8',
+                    color: 'rgba(200, 190, 170, 0.8)',
                     border: 'none',
                     fontSize: '12px',
                     cursor: 'pointer',
@@ -362,9 +374,9 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
               onClick={onBack}
               style={{
                 flex: 1,
-                backgroundColor: '#1e293b',
-                color: '#94a3b8',
-                border: '2px solid #334155',
+                backgroundColor: 'rgba(30, 20, 15, 0.85)',
+                color: 'rgba(200, 190, 170, 0.85)',
+                border: '2px solid rgba(139, 87, 42, 0.5)',
                 borderRadius: '8px',
                 padding: '12px',
                 fontSize: '16px',
@@ -381,16 +393,20 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
               disabled={!roomCode.trim() || !playerName.trim()}
               style={{
                 flex: 2,
-                backgroundColor: roomCode && playerName ? '#14b8a6' : '#334155',
-                color: roomCode && playerName ? '#050814' : '#64748b',
-                border: `2px solid ${roomCode && playerName ? '#14b8a6' : '#334155'}`,
+                background: roomCode && playerName
+                  ? 'linear-gradient(135deg, #d4af37, #b8941f)'
+                  : 'linear-gradient(135deg, rgba(60, 50, 40, 0.6), rgba(50, 40, 30, 0.6))',
+                color: roomCode && playerName ? 'rgba(20, 15, 10, 0.95)' : 'rgba(120, 110, 100, 0.8)',
+                border: `2px solid ${roomCode && playerName ? 'rgba(212, 175, 55, 0.8)' : 'rgba(80, 70, 60, 0.4)'}`,
                 borderRadius: '8px',
                 padding: '12px',
                 fontSize: '16px',
                 fontWeight: '600',
                 cursor: roomCode && playerName ? 'pointer' : 'not-allowed',
                 transition: 'all 0.2s',
-                boxShadow: roomCode && playerName ? '0 0 20px rgba(20, 184, 166, 0.3)' : 'none',
+                boxShadow: roomCode && playerName
+                  ? '0 0 25px rgba(212, 175, 55, 0.4), 0 4px 12px rgba(0, 0, 0, 0.5)'
+                  : 'none',
               }}
             >
               Join Game

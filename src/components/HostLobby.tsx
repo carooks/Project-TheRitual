@@ -8,10 +8,12 @@ interface HostLobbyProps {
   players: MultiplayerPlayer[];
   onStartGame: () => void;
   onCancel: () => void;
+  onToggleReady: (playerId: string) => Promise<void>;
 }
 
-export function HostLobby({ roomCode, players, onStartGame, onCancel }: HostLobbyProps) {
+export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleReady }: HostLobbyProps) {
   const [copied, setCopied] = useState(false);
+  const [readyingPlayerId, setReadyingPlayerId] = useState<string | null>(null);
   
   // Use the actual host (could be network IP when running with --host)
   const joinUrl = `${window.location.origin}/join/${roomCode}`;
@@ -26,6 +28,17 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel }: HostLobb
     navigator.clipboard.writeText(joinUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleHostReady = async (playerId: string) => {
+    try {
+      setReadyingPlayerId(playerId);
+      await onToggleReady(playerId);
+    } catch (error) {
+      console.error('Failed to mark host ready:', error);
+    } finally {
+      setReadyingPlayerId(null);
+    }
   };
   
   // Filter out the host if they haven't joined as a player (empty name)
@@ -276,6 +289,27 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel }: HostLobb
                       }}>
                         ✓ Ready
                       </span>
+                    ) : player.isHost ? (
+                      <button
+                        onClick={() => handleHostReady(player.id)}
+                        disabled={readyingPlayerId === player.id}
+                        style={{
+                          background: readyingPlayerId === player.id
+                            ? 'linear-gradient(135deg, rgba(60, 50, 40, 0.7), rgba(50, 40, 30, 0.7))'
+                            : 'linear-gradient(135deg, rgba(30, 25, 20, 0.9), rgba(25, 20, 15, 0.9))',
+                          color: readyingPlayerId === player.id ? 'rgba(180, 170, 150, 0.6)' : '#d4af37',
+                          border: '1px solid rgba(139, 87, 42, 0.4)',
+                          borderRadius: '4px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: readyingPlayerId === player.id ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
+                        {readyingPlayerId === player.id ? 'Marking…' : 'Mark Ready'}
+                      </button>
                     ) : (
                       <span style={{
                         color: 'rgba(150, 140, 120, 0.75)',

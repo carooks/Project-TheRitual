@@ -63,7 +63,7 @@ function hashString(str: string): number {
 /**
  * Generate a witchy name based on input
  */
-export function generateWitchyName(input: string, nsfw: boolean = false): string {
+export function generateWitchyName(input: string, nsfw: boolean = false, variationOffset: number = 0): string {
   if (!input || input.trim().length === 0) {
     return ''
   }
@@ -75,18 +75,20 @@ export function generateWitchyName(input: string, nsfw: boolean = false): string
   const prefixArray = nsfw ? [...PREFIXES, ...NSFW_PREFIXES] : PREFIXES
   const suffixArray = nsfw ? [...SUFFIXES, ...NSFW_SUFFIXES] : SUFFIXES
   const titleArray = nsfw ? [...TITLES, ...NSFW_TITLES] : TITLES
+
+  const offsetSeed = variationOffset * 131
   
   // Use different parts of hash for selection
-  const prefixIndex = hash % prefixArray.length
-  const suffixIndex = (hash >> 8) % suffixArray.length
-  const titleIndex = (hash >> 16) % titleArray.length
+  const prefixIndex = Math.abs((hash + offsetSeed) % prefixArray.length)
+  const suffixIndex = Math.abs(((hash >> 8) + offsetSeed) % suffixArray.length)
+  const titleIndex = Math.abs(((hash >> 16) + offsetSeed) % titleArray.length)
   
   // Get first letter of input for variation
   const firstChar = cleanInput[0].toLowerCase()
   const charCode = firstChar.charCodeAt(0)
   
   // Decide format based on character code
-  const format = charCode % 6
+  const format = (charCode + variationOffset) % 6
   
   switch (format) {
     case 0:
@@ -116,14 +118,16 @@ export function generateWitchyName(input: string, nsfw: boolean = false): string
  */
 export function generateWitchyNameVariations(input: string, nsfw: boolean = false, count: number = 3): string[] {
   const variations: string[] = []
-  const base = generateWitchyName(input, nsfw)
-  variations.push(base)
-  
-  // Generate variations by slightly modifying the input
-  for (let i = 1; i < count; i++) {
-    const modifiedInput = input + i.toString()
-    variations.push(generateWitchyName(modifiedInput, nsfw))
+  const desiredCount = Math.max(1, count)
+  let offset = 0
+
+  while (variations.length < desiredCount && offset < desiredCount + 10) {
+    const name = generateWitchyName(input, nsfw, offset)
+    if (name && !variations.includes(name)) {
+      variations.push(name)
+    }
+    offset += 1
   }
-  
+
   return variations
 }
