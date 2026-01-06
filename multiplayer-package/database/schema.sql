@@ -1,4 +1,4 @@
--- Twilight Imperium Tracker - Supabase Database Schema
+-- The Ritual - Supabase Database Schema
 -- Run this in your Supabase SQL Editor to set up the database
 
 -- Enable UUID extension
@@ -19,7 +19,7 @@ CREATE TABLE players (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
   name VARCHAR(100) NOT NULL,
-  faction VARCHAR(100),
+  role VARCHAR(100),
   color VARCHAR(20),
   is_ready BOOLEAN DEFAULT FALSE,
   is_host BOOLEAN DEFAULT FALSE,
@@ -65,7 +65,7 @@ CREATE POLICY "Allow public read access to players" ON players
 CREATE POLICY "Allow public insert to players" ON players
   FOR INSERT WITH CHECK (true);
 
--- Allow anyone to update players (for faction/ready status)
+-- Allow anyone to update players (for role/ready status)
 CREATE POLICY "Allow public update to players" ON players
   FOR UPDATE USING (true);
 

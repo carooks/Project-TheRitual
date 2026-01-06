@@ -1,87 +1,142 @@
-import { Ingredient } from './types'
-import { FLAVOR } from './strings'
+// lib/ingredients.ts
+import {
+  Ingredient,
+  IngredientDomain,
+  IngredientEffectTag,
+  IngredientId,
+} from "./types";
 
-export const INGREDIENTS: Record<string, Ingredient> = {
-  eye_of_newt: {
-    id: 'eye_of_newt',
-    name: 'Eye of Newt',
-    icon: '👁️',
-    flavor: FLAVOR.eye_of_newt,
-    corruptionValue: 0.05,
-    effect: 'Glimpse the hidden.'
-  },
-  mandrake_root: {
-    id: 'mandrake_root',
-    name: 'Mandrake Root',
-    icon: '🌱',
-    flavor: FLAVOR.mandrake_root,
+export const INGREDIENTS: Record<IngredientId, Ingredient> = {
+  MANDRAKE_ROOT: {
+    id: "MANDRAKE_ROOT",
+    name: "Mandrake Root",
+    icon: "🌿",
+    domain: "PROTECTION",
+    effectTags: ["SOFT_PROTECT"],
     corruptionValue: -0.15,
-    effect: 'Protects; reduces corruption.'
+    shortDescription: "A root of life that calms volatile magic.",
+    flavorLines: [
+      "A root of life—its cry still echoes.",
+      "Green veins coil; the cauldron cools a breath.",
+    ],
   },
-  tears_of_the_moon: {
-    id: 'tears_of_the_moon',
-    name: 'Tears of the Moon',
-    icon: '🌙',
-    flavor: FLAVOR.tears_of_the_moon,
-    corruptionValue: -0.10,
-    effect: 'Soothes the tide; reduces corruption.'
+  TEARS_OF_THE_MOON: {
+    id: "TEARS_OF_THE_MOON",
+    name: "Tears of the Moon",
+    icon: "💧",
+    domain: "PROTECTION",
+    effectTags: ["SOFT_PROTECT", "MARK_RITUAL"],
+    corruptionValue: -0.1,
+    shortDescription: "Silver drops that wash away traces of the Hollow.",
+    flavorLines: [
+      "Silver drops purify the cauldron's edge.",
+      "Moonlight condenses into mercy.",
+    ],
   },
-  raven_feather: {
-    id: 'raven_feather',
-    name: 'Raven Feather',
-    icon: '🪶',
-    flavor: FLAVOR.raven_feather,
-    corruptionValue: 0.08,
-    effect: 'Whispers secrets.'
+  EYE_OF_NEWT: {
+    id: "EYE_OF_NEWT",
+    name: "Eye of Newt",
+    icon: "🧅",
+    domain: "DIVINATION",
+    effectTags: ["ALIGNMENT_REVEAL"],
+    corruptionValue: 0.05,
+    shortDescription: "A restless eye that glimpses hidden loyalties.",
+    flavorLines: [
+      "The eye opens—seeing truths not meant for mortals.",
+      "A lidless gaze turns upon the Circle.",
+    ],
   },
-  bone_dust: {
-    id: 'bone_dust',
-    name: 'Bone Dust',
-    icon: '💀',
-    flavor: FLAVOR.bone_dust,
-    corruptionValue: 0.12,
-    effect: 'Echoes of the dead.'
-  },
-  candle_wax: {
-    id: 'candle_wax',
-    name: 'Candle Wax',
-    icon: '🕯️',
-    flavor: FLAVOR.candle_wax,
+  CANDLE_WAX: {
+    id: "CANDLE_WAX",
+    name: "Candle Wax",
+    icon: "🕯️",
+    domain: "AMPLIFICATION",
+    effectTags: ["BOOST_CORRUPTION"],
     corruptionValue: 0.06,
-    effect: 'Amplifies intent slightly.'
+    shortDescription: "Melted focus that sharpens whatever the ritual becomes.",
+    flavorLines: [
+      "Flame feeds flame; focus sharpens.",
+      "A drip of tallow—power gathers.",
+    ],
   },
-  blood_of_the_innocent: {
-    id: 'blood_of_the_innocent',
-    name: 'Blood of the Innocent',
-    icon: '🩸',
-    flavor: FLAVOR.blood_of_the_innocent,
-    corruptionValue: 0.3,
-    effect: 'Powerful and dangerous.'
+  RAVEN_FEATHER: {
+    id: "RAVEN_FEATHER",
+    name: "Raven Feather",
+    icon: "🪶",
+    domain: "MISDIRECTION",
+    effectTags: ["DISTORT_VISION", "NOISE_ONLY"],
+    corruptionValue: 0.08,
+    shortDescription: "A black quill that scatters truths into whispers.",
+    flavorLines: [
+      "A feather falls—secrets scatter like smoke.",
+      "Black quill ripples; messages tangle.",
+    ],
   },
-  shadow_ash: {
-    id: 'shadow_ash',
-    name: 'Shadow Ash',
-    icon: '🌫️',
-    flavor: FLAVOR.shadow_ash,
-    corruptionValue: 0.18,
-    effect: 'Darkens intent.'
+  BONE_DUST: {
+    id: "BONE_DUST",
+    name: "Bone Dust",
+    icon: "💀",
+    domain: "DIVINATION",
+    effectTags: ["ALIGNMENT_REVEAL", "DISTORT_VISION"],
+    corruptionValue: 0.12,
+    shortDescription: "Charred bone that lets the dead speak—unclearly.",
+    flavorLines: [
+      "Ash to ash—the dead whisper counsel.",
+      "Char and calcium: the grave speaks.",
+    ],
   },
-  iron_thorn: {
-    id: 'iron_thorn',
-    name: 'Iron Thorn',
-    icon: '🗡️',
-    flavor: FLAVOR.iron_thorn,
+  IRON_THORN: {
+    id: "IRON_THORN",
+    name: "Iron Thorn",
+    icon: "🗡️",
+    domain: "CORRUPTION",
+    effectTags: ["BLOCK_PROTECTION"],
     corruptionValue: 0.14,
-    effect: 'Cuts a stubborn line.'
+    shortDescription: "A cold barb that unthreads protective charms.",
+    flavorLines: [
+      "Iron bites green—wards grow quiet.",
+      "A cold barb unthreads the charm.",
+    ],
   },
-  silver_thread: {
-    id: 'silver_thread',
-    name: 'Silver Thread',
-    icon: '🧵',
-    flavor: FLAVOR.silver_thread,
+  SHADOW_ASH: {
+    id: "SHADOW_ASH",
+    name: "Shadow Ash",
+    icon: "🌫️",
+    domain: "CORRUPTION",
+    effectTags: ["BOOST_CORRUPTION"],
+    corruptionValue: 0.18,
+    shortDescription: "Soot of void that devours light from the ritual.",
+    flavorLines: [
+      "Cinders blacken—the night leans in.",
+      "A soot of void devours the light.",
+    ],
+  },
+  BLOOD_OF_THE_INNOCENT: {
+    id: "BLOOD_OF_THE_INNOCENT",
+    name: "Blood of the Innocent",
+    icon: "🩸",
+    domain: "CORRUPTION",
+    effectTags: ["BOOST_CORRUPTION"],
+    corruptionValue: 0.3,
+    shortDescription: "Forbidden blood that fuels lethal backfires.",
+    flavorLines: [
+      "The blood sizzles—something ancient stirs.",
+      "Red steam coils; hunger wakes.",
+    ],
+  },
+  SILVER_THREAD: {
+    id: "SILVER_THREAD",
+    name: "Silver Thread",
+    icon: "🧵",
+    domain: "DIVINATION",
+    effectTags: ["ALIGNMENT_REVEAL", "MARK_RITUAL"],
     corruptionValue: 0.04,
-    effect: 'Binds fate together.'
-  }
-}
+    shortDescription: "A shining filament that binds fates together.",
+    flavorLines: [
+      "A glinting thread stitches two fates.",
+      "Moonlit fiber hums between distant hearts.",
+    ],
+  },
+};
 
-export const INGREDIENT_LIST = Object.values(INGREDIENTS)
+export const INGREDIENT_LIST = Object.values(INGREDIENTS);
