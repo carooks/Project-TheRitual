@@ -265,15 +265,6 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel }: HostLobb
                         </span>
                       )}
                     </span>
-                    {player.faction && (
-                      <span style={{
-                        fontSize: '11px',
-                        color: 'rgba(180, 170, 150, 0.75)',
-                        letterSpacing: '0.01em',
-                      }}>
-                        {player.faction}
-                      </span>
-                    )}
                   </div>
                   <div>
                     {player.isReady ? (
@@ -285,19 +276,12 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel }: HostLobb
                       }}>
                         ✓ Ready
                       </span>
-                    ) : player.faction ? (
-                      <span style={{
-                        color: '#f59e0b',
-                        fontSize: '12px',
-                      }}>
-                        Confirming...
-                      </span>
                     ) : (
                       <span style={{
-                        color: 'rgba(150, 140, 120, 0.6)',
+                        color: 'rgba(150, 140, 120, 0.75)',
                         fontSize: '12px',
                       }}>
-                        Selecting faction...
+                        Waiting to mark ready…
                       </span>
                     )}
                   </div>

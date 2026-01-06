@@ -6,7 +6,6 @@ interface PlayerViewProps {
   playerId: string;
   playerName: string;
   room: any;
-  selectFaction: (faction: string, color: string, playerIdOverride?: string) => Promise<void>;
   toggleReady: (playerIdOverride?: string, forceReady?: boolean) => Promise<void>;
   sendAction: (action: string, data?: any) => Promise<void>;
   isConnected: boolean;

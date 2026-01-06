@@ -3,6 +3,7 @@ import { Phase, Player, RoundState, OutcomeSummary } from '@/lib/types'
 import { buildRoundDeck, nextPhase } from '@/lib/state'
 import { assignRandomRoles } from '@/lib/roles'
 import { ModeSelection } from '@/components/ModeSelection'
+import { HostSetup } from '@/components/HostSetup'
 import { HostLobby } from '@/components/HostLobby'
 import { PlayerJoin } from '@/components/PlayerJoin'
 import { PlayerView } from '@/components/PlayerView'
@@ -18,7 +19,7 @@ import Reveal from '@/screens/Reveal'
 import Outcome from '@/screens/Outcome'
 import Council from '@/screens/Council'
 
-type AppMode = 'selection' | 'solo-lobby' | 'host-lobby' | 'host-game' | 'player-join' | 'player-game' | 'game-summary'
+type AppMode = 'selection' | 'host-setup' | 'solo-lobby' | 'host-lobby' | 'host-game' | 'player-join' | 'player-game' | 'game-summary'
 
 // Player statistics tracking
 interface PlayerStats {
@@ -116,29 +117,37 @@ export default function App() {
     if (mode === 'solo') {
       setAppMode('solo-lobby')
     } else if (mode === 'host') {
-      try {
-        const hostName = prompt('Enter your name:') || 'Host'
-        const { roomCode: newRoomCode, playerId: newPlayerId } = await multiplayer.createRoom(hostName)
-        
-        setRoomCode(newRoomCode)
-        setPlayerId(newPlayerId)
-        setPlayerName(hostName)
-        setAppMode('host-lobby')
-        
-        localStorage.setItem('multiplayer-session', JSON.stringify({
-          roomCode: newRoomCode,
-          playerId: newPlayerId,
-          playerName: hostName,
-          isHost: true,
-          timestamp: Date.now(),
-        }))
-      } catch (error) {
-        console.error('Failed to create room:', error)
-        alert('Failed to create room. Please check your Supabase configuration.')
-      }
+      setAppMode('host-setup')
     } else if (mode === 'join') {
       setAppMode('player-join')
     }
+  }
+
+  const handleHostSetupSubmit = async (hostNameInput: string) => {
+    const hostName = hostNameInput.trim() || 'Host'
+    try {
+      const { roomCode: newRoomCode, playerId: newPlayerId } = await multiplayer.createRoom(hostName)
+
+      setRoomCode(newRoomCode)
+      setPlayerId(newPlayerId)
+      setPlayerName(hostName)
+      setAppMode('host-lobby')
+
+      localStorage.setItem('multiplayer-session', JSON.stringify({
+        roomCode: newRoomCode,
+        playerId: newPlayerId,
+        playerName: hostName,
+        isHost: true,
+        timestamp: Date.now(),
+      }))
+    } catch (error) {
+      console.error('Failed to create room:', error)
+      alert('Failed to create room. Please check your Supabase configuration.')
+    }
+  }
+
+  const handleCancelHostSetup = () => {
+    setAppMode('selection')
   }
 
   const handlePlayerJoin = async (code: string, name: string) => {
@@ -362,6 +371,11 @@ export default function App() {
       {/* Mode Selection */}
       {appMode === 'selection' && <ModeSelection onSelectMode={handleModeSelect} />}
 
+      {/* Host setup */}
+      {appMode === 'host-setup' && (
+        <HostSetup onSubmit={handleHostSetupSubmit} onCancel={handleCancelHostSetup} />
+      )}
+
       {/* Solo Lobby */}
       {appMode === 'solo-lobby' && <Lobby onBegin={handleBegin} />}
 
@@ -392,7 +406,6 @@ export default function App() {
           playerId={playerId}
           playerName={playerName}
           room={multiplayer.room}
-          selectFaction={multiplayer.selectFaction}
           toggleReady={multiplayer.toggleReady}
           sendAction={async () => {}}
           isConnected={true}
