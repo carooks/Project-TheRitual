@@ -1,4 +1,4 @@
-import { Player, Ingredient, OutcomeSummary, OutcomeState, Phase } from './types'
+import { Player, Ingredient, OutcomeState, Phase } from './types'
 import { ROLES } from './roles'
 import { INGREDIENTS } from './ingredients'
 import { createRng } from './rng'
@@ -67,7 +67,7 @@ export function resolveOutcome(cards: Ingredient[], seed = 'resolve') {
     amplified: hasWax,
     spite,
     dominant
-  } as OutcomeSummary
+  }
 }
 
 export function nextPhase(current: Phase, action: { type: 'NEXT' | 'SET'; phase?: Phase }) {
