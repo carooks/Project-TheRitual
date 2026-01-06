@@ -97,17 +97,22 @@ export type GameConfig = {
 
 // === PHASE / ROUND STATE ===================================
 
-export type Phase =
-  | "LOBBY"
-  | "CHOOSING"
-  | "OFFERING"
-  | "REVEAL"
-  | "OUTCOME"
-  | "COUNCIL"
-  | "END";
+export enum Phase {
+  LOBBY = "LOBBY",
+  CHOOSING = "CHOOSING",
+  OFFERING = "OFFERING",
+  REVEAL = "REVEAL",
+  OUTCOME = "OUTCOME",
+  COUNCIL = "COUNCIL",
+  END = "END"
+}
 
 // Outcome for a ritual (what players see)
-export type OutcomeState = "PURE" | "TAINTED" | "BACKFIRED";
+export enum OutcomeState {
+  PURE = "PURE",
+  TAINTED = "TAINTED",
+  BACKFIRED = "BACKFIRED"
+}
 
 export interface IngredientPlay {
   playerId: string;
