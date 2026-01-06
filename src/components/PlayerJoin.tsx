@@ -51,7 +51,10 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
     <div style={{
       position: 'fixed',
       inset: 0,
-      backgroundColor: 'rgba(5, 8, 20, 0.98)',
+      backgroundImage: 'url(/assets/backgrounds/title-screen.png)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -61,7 +64,15 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
       paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
     }}>
       <div style={{
-        backgroundColor: '#0b1020',
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(135deg, rgba(5, 8, 20, 0.9), rgba(20, 10, 30, 0.9))',
+        backdropFilter: 'blur(4px)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'relative',
+        background: 'linear-gradient(145deg, rgba(10, 16, 32, 0.9), rgba(6, 10, 20, 0.95))',
         border: '2px solid #14b8a6',
         borderRadius: '16px',
         padding: 'clamp(18px, 4.5vw, 40px)',
@@ -69,7 +80,7 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
         width: '90%',
         maxHeight: 'calc(100vh - 32px)',
         overflowY: 'auto',
-        boxShadow: '0 0 40px rgba(20, 184, 166, 0.3)',
+        boxShadow: '0 0 40px rgba(20, 184, 166, 0.35)',
       }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
