@@ -384,6 +384,10 @@ export function PlayerGameScreen({
                 textAlign: 'center',
               }}>
               💡 High corruption (&gt;15%) = Kill vote | Low corruption = Save vote
+            <div style={{
+              backgroundColor: 'rgba(10, 10, 30, 0.8)',
+              border: '2px solid rgba(212, 175, 55, 0.6)',
+              borderRadius: '12px',
               padding: '40px 20px',
               textAlign: 'center',
               backdropFilter: 'blur(10px)',
