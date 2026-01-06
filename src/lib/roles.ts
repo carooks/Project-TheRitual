@@ -67,6 +67,8 @@ export const ROLES: Record<RoleId, RoleDefinition> = {
   },
 };
 
+export const ROLE_IDS = Object.keys(ROLES) as RoleId[];
+
 // Ingredient pools per role (for now: simple arrays)
 // Later you can expand this to weighted pools or per-round hands.
 export interface RoleIngredientPool {
