@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import QRCode from 'react-qr-code';
 import { MultiplayerPlayer } from '../hooks/useSupabaseMultiplayer';
@@ -14,6 +14,47 @@ interface HostLobbyProps {
 export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleReady }: HostLobbyProps) {
   const [copied, setCopied] = useState(false);
   const [readyingPlayerId, setReadyingPlayerId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Music player
+  useEffect(() => {
+    const audio = new Audio('/assets/Audio/wistful-waltz-theo-gerard-main-version-25155-02-13.mp3');
+    audio.loop = true;
+    audio.volume = 0.35;
+    audioRef.current = audio;
+
+    const unlockEvents: Array<keyof DocumentEventMap> = ['pointerdown', 'keydown', 'touchstart', 'mousedown'];
+    let listenersAttached = false;
+
+    const removeUnlockListeners = () => {
+      if (!listenersAttached) return;
+      listenersAttached = false;
+      unlockEvents.forEach(evt => document.removeEventListener(evt, tryPlay));
+    };
+
+    const tryPlay = () => {
+      audio.play().then(removeUnlockListeners).catch(() => {
+        // Ignore errors; listener remains for the next interaction.
+      });
+    };
+
+    const attachUnlockListeners = () => {
+      if (listenersAttached) return;
+      listenersAttached = true;
+      unlockEvents.forEach(evt => document.addEventListener(evt, tryPlay, { passive: true }));
+    };
+
+    audio.play().catch(() => {
+      attachUnlockListeners();
+    });
+
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+      audioRef.current = null;
+      removeUnlockListeners();
+    };
+  }, []);
   
   // Use the actual host (could be network IP when running with --host)
   const joinUrl = `${window.location.origin}/join/${roomCode}`;
@@ -64,13 +105,24 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.5) 0%, rgba(17, 24, 39, 0.95) 70%)',
+      backgroundImage: 'url(/assets/backgrounds/title-screen.png)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 10000,
     }}>
       <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.3) 0%, rgba(17, 24, 39, 0.7) 70%)',
+        backdropFilter: 'blur(4px)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'relative',
         background: 'linear-gradient(135deg, rgba(76, 29, 149, 0.6) 0%, rgba(30, 30, 60, 0.9) 100%)',
         border: '2px solid rgba(212, 175, 55, 0.6)',
         borderRadius: '16px',

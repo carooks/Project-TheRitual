@@ -60,7 +60,10 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.5) 0%, rgba(17, 24, 39, 0.95) 70%)',
+      backgroundImage: 'url(/assets/backgrounds/title-screen.png)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -72,8 +75,8 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'rgba(17, 24, 39, 0.3)',
-        backdropFilter: 'blur(8px)',
+        background: 'radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.3) 0%, rgba(17, 24, 39, 0.7) 70%)',
+        backdropFilter: 'blur(6px)',
         pointerEvents: 'none',
       }} />
       <div style={{
