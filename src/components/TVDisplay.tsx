@@ -129,26 +129,52 @@ export function TVDisplay({
       case Phase.NOMINATION_DISCUSSION:
         return (
           <div>
-            <p style={{ color: '#cbd5f5', marginBottom: '16px' }}>
+            <p style={{ 
+              color: '#e9d5ff', 
+              marginBottom: '16px',
+              fontFamily: 'Georgia, serif',
+            }}>
               Let the coven debate freely. When the conversation peaks, start the vote.
             </p>
-            <button
-              onClick={onBeginNomination}
-              disabled={!onBeginNomination}
-              style={{
-                width: '100%',
-                padding: '16px',
-                borderRadius: '12px',
-                border: '2px solid rgba(250, 204, 21, 0.6)',
-                background: 'rgba(146, 64, 14, 0.5)',
-                color: '#fef3c7',
-                fontWeight: 600,
-                cursor: onBeginNomination ? 'pointer' : 'not-allowed',
-                opacity: onBeginNomination ? 1 : 0.5,
-              }}
-            >
-              Begin Nomination Vote
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                onClick={onBeginNomination}
+                disabled={!onBeginNomination}
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: '2px solid rgba(212, 175, 55, 0.6)',
+                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(76, 29, 149, 0.7) 100%)',
+                  color: '#fef3c7',
+                  fontWeight: 600,
+                  cursor: onBeginNomination ? 'pointer' : 'not-allowed',
+                  opacity: onBeginNomination ? 1 : 0.5,
+                  boxShadow: '0 0 20px rgba(212, 175, 55, 0.3)',
+                  fontFamily: 'Georgia, serif',
+                }}
+              >
+                🗳️ Begin Nomination Vote
+              </button>
+              <button
+                onClick={onAdvancePhase}
+                disabled={!onAdvancePhase}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '2px solid rgba(148, 163, 184, 0.4)',
+                  background: 'rgba(30, 30, 60, 0.6)',
+                  color: '#cbd5f5',
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  cursor: onAdvancePhase ? 'pointer' : 'not-allowed',
+                  opacity: onAdvancePhase ? 0.9 : 0.5,
+                }}
+              >
+                ⏭️ Skip Discussion (Force Timer)
+              </button>
+            </div>
           </div>
         );
       case Phase.NOMINATION_VOTE: {
@@ -313,19 +339,6 @@ export function TVDisplay({
         );
     }
   }
-
-  return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      backgroundImage: 'url(/assets/backgrounds/title-screen.png)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      display: 'flex',
-      flexDirection: 'column',
-      color: '#f1f5f9',
-      overflow: 'hidden',
-    }}>
 
   return (
     <div style={{

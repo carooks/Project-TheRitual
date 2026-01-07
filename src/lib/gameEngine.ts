@@ -152,7 +152,7 @@ function startNewGame(players: EnginePlayerSeed[], seed: string, ctx: EngineCont
     winnerAlignment: undefined,
     winnerReason: undefined,
     tutorialComplete: false,
-    phaseExpiresAt: ctx.now + meta.phaseDurations.discussionMs,
+    phaseExpiresAt: null, // Will be set after tutorial completes
   }
 
   return next
@@ -353,7 +353,8 @@ function handleCouncilVote(
   ctx: EngineContext
 ) {
   if (!isPlayerAlive(state, playerId)) return
-  if (!isPlayerAlive(state, targetId)) return
+  // Allow SKIP or valid alive targets
+  if (targetId !== 'SKIP' && !isPlayerAlive(state, targetId)) return
   if (playerId === targetId) return
 
   state.councilVotes[playerId] = targetId
@@ -366,8 +367,14 @@ function handleCouncilVote(
 
 function finalizeCouncilVote(state: MultiplayerSharedState, ctx: EngineContext) {
   const tally: Record<string, number> = {}
+  let skipCount = 0
+  
   Object.values(state.councilVotes).forEach((targetId) => {
-    tally[targetId] = (tally[targetId] || 0) + 1
+    if (targetId === 'SKIP') {
+      skipCount++
+    } else {
+      tally[targetId] = (tally[targetId] || 0) + 1
+    }
   })
 
   const alive = alivePlayerIds(state)
@@ -376,9 +383,13 @@ function finalizeCouncilVote(state: MultiplayerSharedState, ctx: EngineContext) 
     return
   }
 
-  let eliminatedId = alive[0]
+  const totalVotes = Object.keys(state.councilVotes).length
+  const majorityThreshold = Math.floor(totalVotes / 2) + 1
+  
+  let eliminatedId: string | null = null
   let highest = 0
 
+  // Find player with most votes
   Object.entries(tally).forEach(([targetId, count]) => {
     if (count > highest) {
       highest = count
@@ -388,14 +399,20 @@ function finalizeCouncilVote(state: MultiplayerSharedState, ctx: EngineContext) 
     }
   })
 
-  if (state.protectionBlessing && eliminatedId === state.protectionBlessing) {
-    // Blessing prevents burn this round
-    state.protectionBlessing = null
-  } else {
-    const target = state.players[eliminatedId]
-    if (target) {
-      target.alive = false
+  // Only eliminate if they have a majority
+  if (eliminatedId && highest >= majorityThreshold) {
+    if (state.protectionBlessing && eliminatedId === state.protectionBlessing) {
+      // Blessing prevents burn this round
+      state.protectionBlessing = null
+    } else {
+      const target = state.players[eliminatedId]
+      if (target) {
+        target.alive = false
+      }
+      state.protectionBlessing = null
     }
+  } else {
+    // No majority reached - no one is eliminated
     state.protectionBlessing = null
   }
 

@@ -42,6 +42,7 @@ interface UseSupabaseMultiplayerReturn {
   roomId: string | null;
   createRoom: (hostName: string) => Promise<{ roomCode: string; playerId: string }>;
   joinRoom: (roomCode: string, playerName: string) => Promise<string>;
+  rejoinRoom: (roomCode: string, playerId: string, playerName: string) => Promise<void>;
   selectFaction: (faction: string, color: string) => Promise<void>;
   toggleReady: () => Promise<void>;
   startGame: () => Promise<void>;
@@ -221,6 +222,48 @@ export function useSupabaseMultiplayer(): UseSupabaseMultiplayerReturn {
       return newPlayerId;
     } catch (error) {
       console.error('Error joining room:', error);
+      throw error;
+    }
+  }, []);
+
+  const rejoinRoom = useCallback(async (roomCode: string, existingPlayerId: string, playerName: string) => {
+    try {
+      ensureSupabaseConfigured();
+      const supabase = getSupabaseClient();
+      
+      // Find room by code
+      const { data: roomData, error: roomError } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('code', roomCode)
+        .single();
+
+      if (roomError || !roomData) {
+        throw new Error('Room not found');
+      }
+
+      // Verify player exists in this room
+      const { data: playerData, error: playerError } = await supabase
+        .from('players')
+        .select('*')
+        .eq('id', existingPlayerId)
+        .eq('room_id', roomData.id)
+        .single();
+
+      if (playerError || !playerData) {
+        throw new Error('Player not found in this room');
+      }
+
+      console.log('Rejoining room as existing player:', playerData);
+      
+      setPlayerId(existingPlayerId);
+      setRoomId(roomData.id);
+      roomCodeRef.current = roomCode;
+      
+      // Subscribe to room updates
+      await subscribeToRoom(roomData.id, roomCode);
+    } catch (error) {
+      console.error('Error rejoining room:', error);
       throw error;
     }
   }, []);
@@ -547,6 +590,7 @@ export function useSupabaseMultiplayer(): UseSupabaseMultiplayerReturn {
     roomId,
     createRoom,
     joinRoom,
+    rejoinRoom,
     selectFaction,
     toggleReady,
     startGame,

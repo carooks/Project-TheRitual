@@ -9,39 +9,51 @@ type TutorialSlide = {
 const TUTORIAL_SLIDES: TutorialSlide[] = [
   {
     id: 1,
-    title: "Welcome to The Ritual",
+    title: "🌙 Welcome to The Ritual",
     body:
-      "You are witches of the Circle. Some of you are loyal to the coven. Some harbor the Hollow in secret. Your task is to survive the rituals and expose the corrupted.",
+      "You are witches gathered in a secret Circle, bound by ancient pacts. The Coven seeks to channel pure magic and survive together. But the Hollow—a parasitic void—has infected some among you. It spreads through corruption, feeding on death and chaos. Your survival depends on rooting out the infected before they destroy you all.",
   },
   {
     id: 2,
-    title: "Your Phone is Your Grimoire",
+    title: "📱 Your Phone is Your Secret Grimoire",
     body:
-      "Your phone is private. It shows your role, your choices, and your secrets. You can say whatever you want aloud — truth or lie. The TV is for shared information.",
+      "Your phone is completely private—only you can see your role, your ingredient choices, and any visions you receive. The TV screen shows information visible to everyone. This creates the game's tension: you can claim anything aloud (truth or lies), but your phone reveals the truth to you alone. Use this asymmetry wisely.",
   },
   {
     id: 3,
-    title: "Each Round",
+    title: "🔄 The Ritual Rounds",
     body:
-      "Each round you will: (1) Discuss. (2) Choose a Performer. (3) Cast ingredients into the cauldron. (4) Watch what happens. (5) Decide who must burn at the Council.",
+      "Each round follows a strict pattern: (1) DISCUSS who should perform the ritual. (2) VOTE to nominate the Performer. (3) Everyone SELECTS AN INGREDIENT to add to the cauldron. (4) The ritual RESOLVES—pure, tainted, or catastrophic. (5) The Performer may gain a POWER. (6) The Council votes to BURN one witch. Strategy evolves as corruption accumulates.",
   },
   {
     id: 4,
-    title: "Ingredients Matter",
+    title: "🧪 Ingredients Shape Fate",
     body:
-      "Some ingredients calm or protect the ritual. Others twist it, hurt the Circle, or help the Hollow spread. Your choices shape the corruption in the cauldron.",
+      "Every ingredient has a corruption value and effects. Protective herbs (Mandrake Root, Tears of the Moon) calm the ritual. Divination items (Eye of Newt, Silver Thread) reveal alignments. Dark reagents (Shadow Ash, Blood of the Innocent) fuel corruption and death. The Hollow players will try to poison the cauldron while appearing helpful. Study the ingredients and watch for patterns.",
   },
   {
     id: 5,
-    title: "Death and Silence",
+    title: "💀 Death is Not the End of Your Influence",
     body:
-      "If you die, you are out of the discussion — but the state you leave the Circle in still matters. Too many wrong deaths, and the Hollow wins.",
+      "If you die, you can no longer speak or vote—but the chaos or order you've created persists. Dead Coven members weaken the group. Dead Hollow agents remove corruption sources. The game ends when one side dominates: all Hollow agents eliminated (Coven wins) or Hollow reaches critical mass through deaths and corruption (Hollow wins).",
   },
   {
     id: 6,
-    title: "Trust the People, Not the Magic",
+    title: "🎭 Trust People, Not Magic",
     body:
-      "Ritual omens can mislead. Infection, moonfire, and cleansing all warp what you see. The Ritual is about reading people — not blindly trusting the magic.",
+      "Ritual outcomes can mislead. Corruption, ingredient effects, and role powers create information—but it can be distorted, incomplete, or manipulated. A 'pure' ritual might hide a Hex Witch's poison. A vision might be blocked by Iron Thorn. Success depends on reading behavior: who pushes for dangerous ingredients? Who deflects suspicion? Who claims credit for successes? Deduction wins games.",
+  },
+  {
+    id: 7,
+    title: "⚡ Role Powers Are Key",
+    body:
+      "Your role defines your strategy. Protection Witches shield the Performer from death. Oracles gain visions of player alignments after successful rituals. Chroniclers track patterns. The Exorcist can attempt a risky cleansing. Hex Witches corrupt from the shadows. Harbingers amplify chaos. Mimics disguise their poison as beneficial magic. Master your role—and deduce others'.",
+  },
+  {
+    id: 8,
+    title: "🔥 The Council of Flames",
+    body:
+      "After each ritual, the Council votes to burn one witch. This is your primary weapon against the Hollow—but also your greatest risk. Burn a Coven member by mistake, and you strengthen the Hollow. Majority vote decides who burns (you can SKIP to avoid killing without evidence). The Hollow will manipulate these votes to eliminate threats and sow distrust. Vote wisely.",
   },
 ];
 
@@ -92,51 +104,184 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm flex items-center justify-center"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 40,
+        background: 'radial-gradient(ellipse at center, rgba(76, 29, 149, 0.4) 0%, rgba(0, 0, 0, 0.95) 70%)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+      }}
     >
       <div
-        className="max-w-2xl w-[90%] bg-zinc-900/95 border border-zinc-700 rounded-2xl shadow-2xl px-6 py-6 md:px-8 md:py-8 flex flex-col gap-4"
+        style={{
+          maxWidth: '700px',
+          width: '100%',
+          background: 'linear-gradient(135deg, rgba(20, 10, 40, 0.98) 0%, rgba(40, 15, 60, 0.98) 100%)',
+          border: '2px solid',
+          borderImage: 'linear-gradient(135deg, #d4af37 0%, #8b5cf6 50%, #d4af37 100%) 1',
+          borderRadius: '16px',
+          boxShadow: '0 0 60px rgba(212, 175, 55, 0.3), inset 0 0 40px rgba(139, 92, 246, 0.2)',
+          padding: '32px',
+          position: 'relative',
+        }}
       >
-        <div className="flex items-center justify-between text-xs text-zinc-400 mb-1">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            <span>Quick Tutorial</span>
+        {/* Mystical corner ornaments */}
+        <div style={{
+          position: 'absolute',
+          top: '12px',
+          left: '12px',
+          fontSize: '20px',
+          opacity: 0.6,
+        }}>✦</div>
+        <div style={{
+          position: 'absolute',
+          top: '12px',
+          right: '12px',
+          fontSize: '20px',
+          opacity: 0.6,
+        }}>✦</div>
+        <div style={{
+          position: 'absolute',
+          bottom: '12px',
+          left: '12px',
+          fontSize: '20px',
+          opacity: 0.6,
+        }}>✦</div>
+        <div style={{
+          position: 'absolute',
+          bottom: '12px',
+          right: '12px',
+          fontSize: '20px',
+          opacity: 0.6,
+        }}>✦</div>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '12px',
+          color: '#a78bfa',
+          marginBottom: '20px',
+          paddingBottom: '12px',
+          borderBottom: '1px solid rgba(167, 139, 250, 0.3)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              display: 'inline-block',
+              height: '8px',
+              width: '8px',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, #d4af37 0%, #8b5cf6 100%)',
+              boxShadow: '0 0 8px rgba(212, 175, 55, 0.6)',
+            }} />
+            <span style={{ fontFamily: 'serif', letterSpacing: '1px' }}>Ancient Teachings</span>
           </div>
-          <span>
-            Step {currentIndex + 1} / {totalSlides}
+          <span style={{ fontFamily: 'serif' }}>
+            Scroll {currentIndex + 1} of {totalSlides}
           </span>
         </div>
 
-        <h2 className="text-xl md:text-2xl font-semibold text-zinc-100">
+        <h2 style={{
+          fontSize: '28px',
+          fontWeight: 'bold',
+          background: 'linear-gradient(135deg, #d4af37 0%, #a78bfa 50%, #d4af37 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          marginBottom: '20px',
+          fontFamily: 'serif',
+          textAlign: 'center',
+          textShadow: '0 0 20px rgba(212, 175, 55, 0.3)',
+        }}>
           {currentSlide.title}
         </h2>
 
-        <p className="text-sm md:text-base text-zinc-300 leading-relaxed">
+        <p style={{
+          fontSize: '15px',
+          color: '#e9d5ff',
+          lineHeight: '1.8',
+          marginBottom: '24px',
+          textAlign: 'justify',
+          fontFamily: 'Georgia, serif',
+        }}>
           {currentSlide.body}
         </p>
 
-        <div className="mt-2 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+        <div style={{
+          marginTop: '20px',
+          height: '6px',
+          background: 'rgba(20, 10, 30, 0.8)',
+          borderRadius: '3px',
+          overflow: 'hidden',
+          border: '1px solid rgba(167, 139, 250, 0.3)',
+        }}>
           <div
-            className="h-full bg-emerald-500 transition-all"
-            style={{ width: `${((currentIndex + 1) / totalSlides) * 100}%` }}
+            style={{
+              height: '100%',
+              background: 'linear-gradient(90deg, #d4af37 0%, #8b5cf6 50%, #d4af37 100%)',
+              transition: 'width 0.3s ease',
+              width: `${((currentIndex + 1) / totalSlides) * 100}%`,
+              boxShadow: '0 0 10px rgba(212, 175, 55, 0.6)',
+            }}
           />
         </div>
 
-        <div className="mt-4 flex justify-between items-center gap-3">
+        <div style={{
+          marginTop: '28px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '16px',
+        }}>
           <button
             type="button"
             onClick={handleSkip}
-            className="text-xs md:text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
+            style={{
+              fontSize: '14px',
+              color: '#a78bfa',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'serif',
+              textDecoration: 'underline',
+              transition: 'color 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#d4af37'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#a78bfa'}
           >
-            Skip tutorial
+            Skip ritual preparations
           </button>
 
           <button
             type="button"
             onClick={handleNext}
-            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm md:text-base text-white font-semibold transition-colors"
+            style={{
+              padding: '12px 28px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+              border: '2px solid #d4af37',
+              fontSize: '16px',
+              color: '#fff',
+              fontWeight: 'bold',
+              fontFamily: 'serif',
+              cursor: 'pointer',
+              boxShadow: '0 0 20px rgba(139, 92, 246, 0.5), inset 0 0 10px rgba(212, 175, 55, 0.3)',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)'
+              e.currentTarget.style.boxShadow = '0 0 30px rgba(212, 175, 55, 0.8), inset 0 0 15px rgba(212, 175, 55, 0.5)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)'
+              e.currentTarget.style.boxShadow = '0 0 20px rgba(139, 92, 246, 0.5), inset 0 0 10px rgba(212, 175, 55, 0.3)'
+            }}
           >
-            {currentIndex < totalSlides - 1 ? "Next" : "Begin the Ritual"}
+            {currentIndex < totalSlides - 1 ? "Continue →" : "⚡ Begin the Ritual"}
           </button>
         </div>
       </div>

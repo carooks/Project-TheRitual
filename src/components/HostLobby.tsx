@@ -64,38 +64,41 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
     <div style={{
       position: 'fixed',
       inset: 0,
-      backgroundImage: 'url(/assets/backgrounds/title-screen.png)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
+      background: 'radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.5) 0%, rgba(17, 24, 39, 0.95) 70%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 10000,
     }}>
       <div style={{
-        background: 'linear-gradient(135deg, rgba(20, 15, 10, 0.95) 0%, rgba(30, 20, 15, 0.92) 100%)',
-        border: '2px solid rgba(139, 87, 42, 0.6)',
-        borderRadius: '12px',
+        background: 'linear-gradient(135deg, rgba(76, 29, 149, 0.6) 0%, rgba(30, 30, 60, 0.9) 100%)',
+        border: '2px solid rgba(212, 175, 55, 0.6)',
+        borderRadius: '16px',
         padding: '32px',
         maxWidth: '900px',
         width: '92%',
-        boxShadow: '0 8px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(139, 87, 42, 0.2), 0 0 60px rgba(139, 87, 42, 0.15)',
-        backdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 40px rgba(0, 0, 0, 0.9), 0 0 60px rgba(139, 92, 246, 0.3)',
+        backdropFilter: 'blur(16px)',
       }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <h1 style={{
-            fontSize: '28px',
+            fontSize: '32px',
             fontWeight: '700',
             color: '#d4af37',
-            marginBottom: '6px',
-            textShadow: '0 0 20px rgba(212, 175, 55, 0.6)',
-            letterSpacing: '0.08em',
+            marginBottom: '8px',
+            textShadow: '0 0 25px rgba(212, 175, 55, 0.7)',
+            letterSpacing: '0.1em',
+            fontFamily: 'Georgia, serif',
           }}>
-            Multiplayer Lobby
+            ✦ Multiplayer Lobby ✦
           </h1>
-          <p style={{ color: 'rgba(200, 190, 170, 0.75)', fontSize: '13px', letterSpacing: '0.02em' }}>
+          <p style={{ 
+            color: '#e9d5ff', 
+            fontSize: '14px', 
+            letterSpacing: '0.02em',
+            fontFamily: 'Georgia, serif',
+          }}>
             Scan the QR code or enter the room code to join
           </p>
         </div>
@@ -152,8 +155,8 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
                 Room Code
               </label>
               <div style={{
-                background: 'linear-gradient(135deg, rgba(10, 8, 5, 0.8), rgba(15, 12, 8, 0.8))',
-                border: '2px solid rgba(139, 87, 42, 0.5)',
+                background: 'linear-gradient(135deg, rgba(76, 29, 149, 0.4) 0%, rgba(30, 30, 60, 0.6) 100%)',
+                border: '2px solid rgba(212, 175, 55, 0.4)',
                 borderRadius: '6px',
                 padding: '14px',
                 fontSize: '32px',
@@ -162,8 +165,8 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
                 letterSpacing: '10px',
                 textAlign: 'center',
                 color: '#d4af37',
-                textShadow: '0 0 15px rgba(212, 175, 55, 0.6)',
-                boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.5)',
+                textShadow: '0 0 20px rgba(212, 175, 55, 0.7)',
+                boxShadow: '0 0 25px rgba(139, 92, 246, 0.3)',
               }}>
                 {roomCode}
               </div>
@@ -172,9 +175,11 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
             <button
               onClick={handleCopyCode}
               style={{
-                background: copied ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, rgba(30, 25, 20, 0.9), rgba(25, 20, 15, 0.9))',
-                color: copied ? 'white' : '#d4af37',
-                border: `2px solid ${copied ? '#10b981' : 'rgba(139, 87, 42, 0.5)'}`,
+                background: copied 
+                  ? 'linear-gradient(135deg, #10b981, #059669)' 
+                  : 'linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(76, 29, 149, 0.6) 100%)',
+                color: copied ? 'white' : '#e9d5ff',
+                border: `2px solid ${copied ? '#10b981' : 'rgba(212, 175, 55, 0.5)'}`,
                 borderRadius: '6px',
                 padding: '10px 20px',
                 fontSize: '13px',
@@ -182,8 +187,7 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
                 cursor: 'pointer',
                 transition: 'all 0.3s',
                 letterSpacing: '0.05em',
-                boxShadow: copied ? '0 0 20px rgba(16, 185, 129, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.4)',
-                textShadow: copied ? 'none' : '0 0 10px rgba(212, 175, 55, 0.4)',
+                boxShadow: copied ? '0 0 20px rgba(16, 185, 129, 0.4)' : '0 0 15px rgba(139, 92, 246, 0.3)',
               }}
             >
               {copied ? '✓ Copied!' : 'Copy Code'}
@@ -193,12 +197,12 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
 
         {/* Players List */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(10, 8, 5, 0.6), rgba(15, 12, 8, 0.6))',
+          background: 'linear-gradient(135deg, rgba(30, 30, 60, 0.5) 0%, rgba(20, 20, 40, 0.6) 100%)',
           borderRadius: '8px',
           padding: '20px',
           marginBottom: '20px',
-          border: '1px solid rgba(139, 87, 42, 0.3)',
-          boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.4)',
+          border: '1px solid rgba(212, 175, 55, 0.3)',
+          boxShadow: '0 0 20px rgba(139, 92, 246, 0.2)',
         }}>
           <div style={{
             display: 'flex',
@@ -207,16 +211,17 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
             marginBottom: '14px',
           }}>
             <h3 style={{
-              fontSize: '16px',
+              fontSize: '18px',
               fontWeight: '600',
               color: '#d4af37',
               letterSpacing: '0.05em',
-              textShadow: '0 0 12px rgba(212, 175, 55, 0.5)',
+              textShadow: '0 0 15px rgba(212, 175, 55, 0.6)',
+              fontFamily: 'Georgia, serif',
             }}>
               Players ({actualPlayers.length})
             </h3>
             <div style={{
-              color: 'rgba(200, 190, 170, 0.7)',
+              color: '#cbd5f5',
               fontSize: '13px',
               letterSpacing: '0.02em',
             }}>
@@ -227,11 +232,12 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
           {actualPlayers.length === 0 ? (
             <div style={{
               textAlign: 'center',
-              color: 'rgba(150, 140, 120, 0.6)',
+              color: '#94a3b8',
               padding: '28px',
               fontStyle: 'italic',
-              fontSize: '13px',
+              fontSize: '14px',
               letterSpacing: '0.02em',
+              fontFamily: 'Georgia, serif',
             }}>
               Waiting for players to join...
             </div>
@@ -248,11 +254,11 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    background: 'linear-gradient(135deg, rgba(20, 15, 10, 0.7), rgba(25, 18, 12, 0.7))',
+                    background: 'linear-gradient(135deg, rgba(76, 29, 149, 0.3) 0%, rgba(30, 30, 60, 0.5) 100%)',
                     padding: '11px 14px',
                     borderRadius: '6px',
-                    border: '1px solid rgba(139, 87, 42, 0.3)',
-                    boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(212, 175, 55, 0.3)',
+                    boxShadow: '0 0 15px rgba(139, 92, 246, 0.2)',
                   }}
                 >
                   <div style={{
@@ -262,7 +268,7 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
                   }}>
                     <span style={{
                       fontWeight: '600',
-                      color: player.color || 'rgba(200, 190, 170, 0.9)',
+                      color: player.color || '#e9d5ff',
                       fontSize: '14px',
                       letterSpacing: '0.01em',
                     }}>
@@ -272,7 +278,7 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
                           marginLeft: '8px',
                           fontSize: '11px',
                           color: '#d4af37',
-                          textShadow: '0 0 8px rgba(212, 175, 55, 0.4)',
+                          textShadow: '0 0 10px rgba(212, 175, 55, 0.5)',
                         }}>
                           ★
                         </span>
@@ -295,10 +301,10 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
                         disabled={readyingPlayerId === player.id}
                         style={{
                           background: readyingPlayerId === player.id
-                            ? 'linear-gradient(135deg, rgba(60, 50, 40, 0.7), rgba(50, 40, 30, 0.7))'
-                            : 'linear-gradient(135deg, rgba(30, 25, 20, 0.9), rgba(25, 20, 15, 0.9))',
-                          color: readyingPlayerId === player.id ? 'rgba(180, 170, 150, 0.6)' : '#d4af37',
-                          border: '1px solid rgba(139, 87, 42, 0.4)',
+                            ? 'rgba(60, 50, 80, 0.5)'
+                            : 'linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(76, 29, 149, 0.6) 100%)',
+                          color: readyingPlayerId === player.id ? '#94a3b8' : '#e9d5ff',
+                          border: '1px solid rgba(212, 175, 55, 0.4)',
                           borderRadius: '4px',
                           padding: '6px 12px',
                           fontSize: '12px',
@@ -312,7 +318,7 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
                       </button>
                     ) : (
                       <span style={{
-                        color: 'rgba(150, 140, 120, 0.75)',
+                        color: '#94a3b8',
                         fontSize: '12px',
                       }}>
                         Waiting to mark ready…
@@ -334,9 +340,9 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
           <button
             onClick={onCancel}
             style={{
-              background: 'linear-gradient(135deg, rgba(30, 25, 20, 0.8), rgba(25, 20, 15, 0.8))',
-              color: 'rgba(180, 170, 150, 0.9)',
-              border: '2px solid rgba(100, 80, 60, 0.4)',
+              background: 'linear-gradient(135deg, rgba(30, 30, 60, 0.6) 0%, rgba(20, 20, 40, 0.7) 100%)',
+              color: '#cbd5f5',
+              border: '2px solid rgba(148, 163, 184, 0.4)',
               borderRadius: '6px',
               padding: '11px 28px',
               fontSize: '14px',
@@ -344,15 +350,15 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
               cursor: 'pointer',
               transition: 'all 0.3s',
               letterSpacing: '0.05em',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+              boxShadow: '0 0 15px rgba(139, 92, 246, 0.2)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(139, 87, 42, 0.6)';
-              e.currentTarget.style.color = 'rgba(200, 190, 170, 0.95)';
+              e.currentTarget.style.borderColor = 'rgba(167, 139, 250, 0.6)';
+              e.currentTarget.style.color = '#e9d5ff';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(100, 80, 60, 0.4)';
-              e.currentTarget.style.color = 'rgba(180, 170, 150, 0.9)';
+              e.currentTarget.style.borderColor = 'rgba(148, 163, 184, 0.4)';
+              e.currentTarget.style.color = '#cbd5f5';
             }}
           >
             Cancel
@@ -362,9 +368,11 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
             onClick={onStartGame}
             disabled={!canStart}
             style={{
-              background: canStart ? 'linear-gradient(135deg, #d4af37, #b8941f)' : 'linear-gradient(135deg, rgba(60, 50, 40, 0.6), rgba(50, 40, 30, 0.6))',
-              color: canStart ? 'rgba(20, 15, 10, 0.95)' : 'rgba(100, 90, 80, 0.5)',
-              border: `2px solid ${canStart ? 'rgba(212, 175, 55, 0.8)' : 'rgba(80, 70, 60, 0.4)'}`,
+              background: canStart 
+                ? 'linear-gradient(135deg, #d4af37, #b8941f)' 
+                : 'linear-gradient(135deg, rgba(60, 50, 80, 0.4), rgba(40, 30, 60, 0.5))',
+              color: canStart ? 'rgba(20, 15, 10, 0.95)' : 'rgba(148, 163, 184, 0.5)',
+              border: `2px solid ${canStart ? 'rgba(212, 175, 55, 0.8)' : 'rgba(148, 163, 184, 0.3)'}`,
               borderRadius: '6px',
               padding: '11px 28px',
               fontSize: '14px',
@@ -372,33 +380,37 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
               cursor: canStart ? 'pointer' : 'not-allowed',
               transition: 'all 0.3s',
               letterSpacing: '0.08em',
-              boxShadow: canStart ? '0 0 25px rgba(212, 175, 55, 0.4), 0 4px 12px rgba(0, 0, 0, 0.5)' : '0 2px 6px rgba(0, 0, 0, 0.3)',
+              fontFamily: 'Georgia, serif',
+              boxShadow: canStart 
+                ? '0 0 30px rgba(212, 175, 55, 0.5), 0 4px 12px rgba(0, 0, 0, 0.6)' 
+                : '0 0 10px rgba(139, 92, 246, 0.1)',
               textShadow: canStart ? '0 1px 2px rgba(0, 0, 0, 0.3)' : 'none',
             }}
             onMouseEnter={(e) => {
               if (canStart) {
-                e.currentTarget.style.boxShadow = '0 0 35px rgba(212, 175, 55, 0.6), 0 6px 16px rgba(0, 0, 0, 0.6)';
+                e.currentTarget.style.boxShadow = '0 0 40px rgba(212, 175, 55, 0.7), 0 6px 16px rgba(0, 0, 0, 0.7)';
                 e.currentTarget.style.transform = 'translateY(-2px)';
               }
             }}
             onMouseLeave={(e) => {
               if (canStart) {
-                e.currentTarget.style.boxShadow = '0 0 25px rgba(212, 175, 55, 0.4), 0 4px 12px rgba(0, 0, 0, 0.5)';
+                e.currentTarget.style.boxShadow = '0 0 30px rgba(212, 175, 55, 0.5), 0 4px 12px rgba(0, 0, 0, 0.6)';
                 e.currentTarget.style.transform = 'translateY(0)';
               }
             }}
           >
-            Start Game
+            ✨ Start Game
           </button>
         </div>
 
         {!canStart && actualPlayers.length > 0 && (
           <p style={{
             textAlign: 'center',
-            color: '#64748b',
+            color: '#94a3b8',
             fontSize: '12px',
             marginTop: '16px',
             fontStyle: 'italic',
+            fontFamily: 'Georgia, serif',
           }}>
             {actualPlayers.length < 2 
               ? 'Need at least 2 players to start'

@@ -7,6 +7,7 @@ export interface PlayerStatus {
   alignment: Alignment
   alive: boolean
   isHost?: boolean
+  disconnected?: boolean
 }
 
 export interface VoteRevealEntry {
@@ -71,7 +72,7 @@ export interface MultiplayerSharedState {
 export const SHARED_STATE_SCHEMA_VERSION = 2
 
 export const DEFAULT_PHASE_DURATIONS: MultiplayerPhaseDurations = {
-  discussionMs: 60_000,
+  discussionMs: 300_000,  // 5 minutes for discussion
   nominationVoteMs: 60_000,
   revealMs: 15_000,
   ingredientChoiceMs: 60_000,

@@ -35,7 +35,7 @@ export function PlayerView({
     <div style={{
       minHeight: '100vh',
       backgroundColor: '#050814',
-      padding: '24px',
+      padding: '16px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -64,7 +64,7 @@ export function PlayerView({
         backgroundColor: 'rgba(11, 16, 32, 0.8)',
         border: '2px solid #d4af37',
         borderRadius: '16px',
-        padding: '40px',
+        padding: '24px',
         maxWidth: '500px',
         width: '100%',
         textAlign: 'center',
@@ -73,16 +73,16 @@ export function PlayerView({
         <div style={{ fontSize: '48px', marginBottom: '24px' }}></div>
 
         <h1 style={{
-          fontSize: '32px',
+          fontSize: '24px',
           fontWeight: 'bold',
           color: '#d4af37',
-          marginBottom: '12px',
+          marginBottom: '8px',
           textShadow: '0 0 20px rgba(212, 175, 55, 0.5)',
         }}>
           The Circle Awaits
         </h1>
 
-        <p style={{ color: '#94a3b8', fontSize: '18px', marginBottom: '32px' }}>
+        <p style={{ color: '#94a3b8', fontSize: '16px', marginBottom: '24px' }}>
           {playerName}
         </p>
 
@@ -90,13 +90,13 @@ export function PlayerView({
           backgroundColor: '#0b1020',
           border: '2px solid #14b8a6',
           borderRadius: '12px',
-          padding: '16px',
-          marginBottom: '32px',
+          padding: '12px',
+          marginBottom: '20px',
         }}>
           <div style={{
             color: '#94a3b8',
-            fontSize: '12px',
-            marginBottom: '8px',
+            fontSize: '11px',
+            marginBottom: '6px',
             textTransform: 'uppercase',
             letterSpacing: '1px',
           }}>
@@ -104,9 +104,9 @@ export function PlayerView({
           </div>
           <div style={{
             color: '#14b8a6',
-            fontSize: '36px',
+            fontSize: '28px',
             fontWeight: 'bold',
-            letterSpacing: '8px',
+            letterSpacing: '6px',
             fontFamily: 'monospace',
           }}>
             {roomCode}
@@ -117,13 +117,13 @@ export function PlayerView({
           backgroundColor: '#0b1020',
           border: '2px solid #4c1d95',
           borderRadius: '12px',
-          padding: '16px',
-          marginBottom: '32px',
+          padding: '12px',
+          marginBottom: '20px',
         }}>
           <div style={{
             color: '#94a3b8',
-            fontSize: '12px',
-            marginBottom: '12px',
+            fontSize: '11px',
+            marginBottom: '10px',
             textTransform: 'uppercase',
             letterSpacing: '1px',
           }}>
@@ -164,12 +164,12 @@ export function PlayerView({
             color: '#050814',
             border: 'none',
             borderRadius: '12px',
-            padding: '16px 32px',
-            fontSize: '18px',
+            padding: '14px 24px',
+            fontSize: '16px',
             fontWeight: 'bold',
             cursor: currentPlayer?.isReady ? 'not-allowed' : 'pointer',
             width: '100%',
-            marginBottom: '16px',
+            marginBottom: '12px',
             boxShadow: currentPlayer?.isReady 
               ? '0 0 20px rgba(34, 197, 94, 0.3)' 
               : '0 0 20px rgba(212, 175, 55, 0.3)',

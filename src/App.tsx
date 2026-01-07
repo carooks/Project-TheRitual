@@ -9,6 +9,7 @@ import { PlayerView } from '@/components/PlayerView'
 import { TVDisplay } from '@/components/TVDisplay'
 import { PlayerGameScreen } from '@/components/PlayerGameScreen'
 import { GameSummary } from '@/components/GameSummary'
+import { TutorialOverlay } from '@/components/TutorialOverlay'
 import { useSupabaseMultiplayer } from '@/hooks/useSupabaseMultiplayer'
 import { useGameTimer } from '@/hooks/useGameTimer'
 import Lobby from '@/screens/Lobby'
@@ -46,10 +47,13 @@ export default function App() {
   const [gameStats, setGameStats] = useState<PlayerStats[]>([])
   const [gameWinner, setGameWinner] = useState<'coven' | 'corrupted' | 'draw'>('coven')
   const [sharedGameState, setSharedGameState] = useState<MultiplayerSharedState | null>(null)
+  const [showTutorial, setShowTutorial] = useState(false)
+  const [lastSession, setLastSession] = useState<any>(null)
   const multiplayer = useSupabaseMultiplayer()
   useEffect(() => {
     const handler = (event: Event) => {
       const customEvent = event as CustomEvent<MultiplayerSharedState | null>
+      console.log('[gameStateUpdate] Received update:', customEvent.detail?.phase, customEvent.detail?.roundNumber)
       setSharedGameState(customEvent.detail ?? null)
     }
 
@@ -92,6 +96,24 @@ export default function App() {
     
     // Restore session
     const savedSession = localStorage.getItem('multiplayer-session')
+    const lastSessionStr = localStorage.getItem('multiplayer-last-session')
+    
+    // Check for recent left session first (for rejoin banner)
+    if (lastSessionStr && !savedSession) {
+      try {
+        const lastSess = JSON.parse(lastSessionStr)
+        const age = Date.now() - lastSess.timestamp
+        if (age < 30 * 60 * 1000) { // 30 minutes
+          setLastSession(lastSess)
+        } else {
+          localStorage.removeItem('multiplayer-last-session')
+        }
+      } catch (error) {
+        console.error('Error parsing last session:', error)
+        localStorage.removeItem('multiplayer-last-session')
+      }
+    }
+    
     if (savedSession) {
       try {
         const session = JSON.parse(savedSession)
@@ -101,18 +123,24 @@ export default function App() {
           setPlayerId(session.playerId)
           setPlayerName(session.playerName)
           
-          if (session.isHost) {
-            multiplayer.joinRoom(session.roomCode, session.playerName).then(() => {
-              if (multiplayer.room?.status === 'in-progress') {
-                setAppMode('host-game')
+          // Use rejoinRoom to restore existing player state
+          multiplayer.rejoinRoom(session.roomCode, session.playerId, session.playerName)
+            .then(() => {
+              console.log('Rejoined room successfully')
+              if (session.isHost) {
+                if (multiplayer.room?.status === 'in-progress') {
+                  setAppMode('host-game')
+                } else {
+                  setAppMode('host-lobby')
+                }
               } else {
-                setAppMode('host-lobby')
+                setAppMode('player-game')
               }
             })
-          } else {
-            setAppMode('player-game')
-            multiplayer.joinRoom(session.roomCode, session.playerName)
-          }
+            .catch((error) => {
+              console.error('Failed to rejoin room:', error)
+              localStorage.removeItem('multiplayer-session')
+            })
         } else {
           localStorage.removeItem('multiplayer-session')
         }
@@ -129,12 +157,15 @@ export default function App() {
 
   const dispatchGameIntent = useCallback((intent: GameIntent) => {
     if (!isHostPlayer && intent.type !== 'START_GAME') {
+      console.log('[dispatchGameIntent] Non-host tried to dispatch:', intent.type)
       return
     }
 
+    console.log('[dispatchGameIntent] Dispatching intent:', intent.type)
     setSharedGameState((prev) => {
       try {
         const nextState = applyIntent(prev, intent, { now: Date.now() })
+        console.log('[dispatchGameIntent] New state phase:', nextState.phase, 'Round:', nextState.roundNumber)
         void multiplayer.updateGameState(nextState)
         return nextState
       } catch (error) {
@@ -285,7 +316,13 @@ export default function App() {
   const handleStartGame = async () => {
     if (!isHostPlayer || !multiplayer.room) return
 
-    const actualPlayers = multiplayer.room.players.filter(p => p.name && p.name.trim() !== '')
+    // Filter out host player unless they explicitly have a non-host role/name
+    // Host only participates if they joined as a regular player too
+    const actualPlayers = multiplayer.room.players.filter(p => 
+      p.name && 
+      p.name.trim() !== '' && 
+      (!p.isHost || p.name !== 'Host')
+    )
 
     if (actualPlayers.length < 3) {
       alert('Need at least 3 players to start the game')
@@ -300,14 +337,29 @@ export default function App() {
 
     const seed = `${multiplayer.room.id}-${Date.now()}`
 
-    dispatchGameIntent({
-      type: 'START_GAME',
-      players: seeds,
-      seed,
-    })
-
-    await multiplayer.startGame()
-    setAppMode('host-game')
+    // Apply state synchronously to avoid race condition
+    try {
+      const initialGameState = applyIntent(null, {
+        type: 'START_GAME',
+        players: seeds,
+        seed,
+      }, { now: Date.now() })
+      
+      console.log('[handleStartGame] Initial state created:', initialGameState.phase, 'Players:', Object.keys(initialGameState.players).length)
+      
+      // Set state synchronously
+      setSharedGameState(initialGameState)
+      
+      // Broadcast to database
+      await multiplayer.updateGameState(initialGameState)
+      await multiplayer.startGame()
+      
+      // Now safe to change mode
+      setAppMode('host-game')
+    } catch (error) {
+      console.error('Failed to start game:', error)
+      alert('Failed to start game. Please try again.')
+    }
   }
 
   const handleLeave = () => {
@@ -317,6 +369,54 @@ export default function App() {
     setPlayerRoleId(undefined)
     setAppMode('selection')
   }
+
+  const handleLeaveGame = useCallback(() => {
+    // Store session data for potential rejoin
+    const sessionData = {
+      roomCode,
+      playerId,
+      playerName,
+      isHost: isHostPlayer,
+      timestamp: Date.now(),
+    }
+    localStorage.setItem('multiplayer-last-session', JSON.stringify(sessionData))
+    setLastSession(sessionData)
+    
+    // Disconnect but keep session for rejoin
+    multiplayer.disconnect()
+    setAppMode('selection')
+  }, [roomCode, playerId, playerName, isHostPlayer, multiplayer])
+
+  const handleRejoinLastGame = useCallback(() => {
+    const savedSession = localStorage.getItem('multiplayer-last-session')
+    if (savedSession) {
+      try {
+        const session = JSON.parse(savedSession)
+        console.log('Rejoining last game:', session)
+        
+        setRoomCode(session.roomCode)
+        setPlayerId(session.playerId)
+        setPlayerName(session.playerName)
+        
+        multiplayer.rejoinRoom(session.roomCode, session.playerId, session.playerName)
+          .then(() => {
+            console.log('Rejoined successfully')
+            setAppMode(session.isHost ? 'host-game' : 'player-game')
+            setLastSession(null)
+            localStorage.removeItem('multiplayer-last-session')
+          })
+          .catch((error) => {
+            console.error('Failed to rejoin:', error)
+            alert('Failed to rejoin game. The game may have ended.')
+            setLastSession(null)
+            localStorage.removeItem('multiplayer-last-session')
+          })
+      } catch (error) {
+        console.error('Error parsing session:', error)
+        localStorage.removeItem('multiplayer-last-session')
+      }
+    }
+  }, [multiplayer])
 
   function handleElected() {
     setRound({ ...round, phase: Phase.OFFERING })
@@ -487,11 +587,109 @@ export default function App() {
     dispatchGameIntent({ type: 'ADVANCE_FROM_DISCUSSION' })
   }, [dispatchGameIntent, isHostPlayer])
 
+  const handleTutorialComplete = useCallback(async () => {
+    try {
+      setShowTutorial(false)
+      if (isHostPlayer) {
+        dispatchGameIntent({ type: 'MARK_TUTORIAL_COMPLETE' })
+        // Start the phase timer for round 1
+        if (sharedGameState?.roundNumber === 1 && sharedGameState.phase === Phase.NOMINATION_DISCUSSION) {
+          const updatedState = {
+            ...sharedGameState,
+            tutorialComplete: true,
+            phaseExpiresAt: Date.now() + (sharedGameState.meta?.phaseDurations?.discussionMs ?? 60000)
+          }
+          setSharedGameState(updatedState)
+          // Broadcast timer start to all players
+          await multiplayer.updateGameState(updatedState)
+        }
+      }
+    } catch (error) {
+      console.error('Error completing tutorial:', error)
+      setShowTutorial(false)
+    }
+  }, [dispatchGameIntent, isHostPlayer, sharedGameState, multiplayer])
+
+  const handleShowTutorial = useCallback(() => {
+    try {
+      setShowTutorial(true)
+    } catch (error) {
+      console.error('Error showing tutorial:', error)
+    }
+  }, [])
+
   const activePhase = sharedGameState?.phase ?? round.phase
   const activeRoundNumber = sharedGameState?.roundNumber ?? round.id
 
+  // Show tutorial on game start if not completed (host only, to avoid disrupting players mid-game)
+  useEffect(() => {
+    if (sharedGameState && !sharedGameState.tutorialComplete && appMode === 'host-game' && sharedGameState.roundNumber === 1 && sharedGameState.phase === Phase.NOMINATION_DISCUSSION) {
+      setShowTutorial(true)
+    }
+  }, [sharedGameState?.tutorialComplete, sharedGameState?.roundNumber, sharedGameState?.phase, appMode])
+
   return (
     <div className="app-shell">
+      {/* Rejoin Banner */}
+      {lastSession && appMode === 'selection' && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1000,
+          backgroundColor: 'rgba(14, 165, 233, 0.95)',
+          border: '2px solid #0ea5e9',
+          borderRadius: '12px',
+          padding: '16px 24px',
+          color: '#f0f9ff',
+          boxShadow: '0 4px 20px rgba(14, 165, 233, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          maxWidth: '500px',
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+              🔄 Rejoin Game?
+            </div>
+            <div style={{ fontSize: '14px', opacity: 0.9 }}>
+              Room {lastSession.roomCode} as {lastSession.playerName}
+            </div>
+          </div>
+          <button
+            onClick={handleRejoinLastGame}
+            style={{
+              backgroundColor: '#f0f9ff',
+              color: '#0369a1',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '10px 20px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+            }}
+          >
+            Rejoin
+          </button>
+          <button
+            onClick={() => {
+              setLastSession(null)
+              localStorage.removeItem('multiplayer-last-session')
+            }}
+            style={{
+              backgroundColor: 'transparent',
+              color: '#f0f9ff',
+              border: '2px solid #f0f9ff',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+      
       {appMode !== 'selection' && (
         <div className="text-xs text-gray-500">
           Phase: {activePhase} | Round: {activeRoundNumber}
@@ -544,6 +742,14 @@ export default function App() {
         />
       )}
 
+      {/* Tutorial Overlay */}
+      {showTutorial && (
+        <TutorialOverlay 
+          onComplete={handleTutorialComplete}
+          autoAdvanceMs={8000}
+        />
+      )}
+
       {/* Game Screens (both host and players) */}
       {(appMode === 'host-game' || (appMode === 'player-game' && multiplayer.room?.status === 'in-progress')) && (
         <>
@@ -579,6 +785,8 @@ export default function App() {
               onSubmitIngredient={submitIngredientChoice}
               onSubmitCouncil={submitCouncilVote}
               onSubmitPower={submitPowerTarget}
+              onShowHelp={handleShowTutorial}
+              onLeaveGame={handleLeaveGame}
             />
           )}
         </>
