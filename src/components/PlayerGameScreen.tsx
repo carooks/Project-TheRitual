@@ -960,54 +960,6 @@ export function PlayerGameScreen({
                         🔥 Seal the Verdict
                       </button>
                     )}
-                        }}>
-                          Skip Vote
-                        </div>
-                        {councilVote === 'SKIP' && (
-                          <div style={{
-                            fontSize: '13px',
-                            color: '#d4af37',
-                            marginTop: '4px',
-                          }}>
-                            ✓ Voted
-                          </div>
-                        )}
-                      </button>
-                    </div>
-
-                    {(councilVote || hasVoted) && (
-                      <div style={{
-                        marginTop: '20px',
-                        padding: '16px',
-                        backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                        border: '2px solid rgba(212, 175, 55, 0.5)',
-                        borderRadius: '12px',
-                        textAlign: 'center',
-                      }}>
-                        <div style={{
-                          fontSize: '16px',
-                          fontWeight: '600',
-                          color: '#4ade80',
-                          marginBottom: '4px',
-                        }}>
-                          ✓ Vote Cast
-                        </div>
-                        <div style={{
-                          fontSize: '14px',
-                          color: '#d4af37',
-                          fontWeight: '600',
-                        }}>
-                          ✓ Vote Cast
-                        </div>
-                        <div style={{
-                          fontSize: '14px',
-                          color: '#94a3b8',
-                          marginTop: '4px',
-                        }}>
-                          Waiting for other players...
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
