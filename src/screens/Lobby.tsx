@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import Banner from '@/components/UI/Banner'
 import Button from '@/components/UI/Button'
 import { UI } from '@/lib/strings'
@@ -11,6 +11,40 @@ type Props = {
 }
 
 export default function Lobby({ onBegin }: Props) {
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  useEffect(() => {
+    const audio = new Audio('/assets/Audio/wistful-waltz-theo-gerard-main-version-25155-02-13.mp3')
+    audio.loop = true
+    audio.volume = 0.35
+    audioRef.current = audio
+
+    const tryPlay = () => {
+      audio.play().then(() => {
+        document.removeEventListener('pointerdown', tryPlay)
+        document.removeEventListener('keydown', tryPlay)
+      }).catch(() => {
+        // Ignore play errors; user interaction will retry.
+      })
+    }
+
+    const initialPlay = audio.play()
+    if (initialPlay) {
+      initialPlay.catch(() => {
+        document.addEventListener('pointerdown', tryPlay)
+        document.addEventListener('keydown', tryPlay)
+      })
+    }
+
+    return () => {
+      audio.pause()
+      audio.currentTime = 0
+      audioRef.current = null
+      document.removeEventListener('pointerdown', tryPlay)
+      document.removeEventListener('keydown', tryPlay)
+    }
+  }, [])
+
   function makePlayers(n = 9) {
     const rng = createRng('players')
     const players: Player[] = []

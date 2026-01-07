@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { Phase, Player, Ingredient } from '@/lib/types';
+import React, { useMemo, useState } from 'react';
+import { Phase, RoleId } from '@/lib/types';
 import { INGREDIENTS } from '@/lib/ingredients';
-import { ROLES } from '@/lib/roles';
+import { getIngredientPoolForRole, ROLES } from '@/lib/roles';
+import type { MultiplayerPlayer } from '@/hooks/useSupabaseMultiplayer';
 
 interface PlayerGameScreenProps {
   playerId: string;
   playerName: string;
-  players: Player[];
+  players: MultiplayerPlayer[];
   phase: Phase;
   round: number;
   roleId?: string;
@@ -17,7 +18,10 @@ interface PlayerGameScreenProps {
   selectedIngredient?: string;
   hasVoted?: boolean;
   isReady?: boolean;
-  allPlayerSelections?: Record<string, string>; // playerId -> ingredientId
+  allPlayerSelections?: Record<string, string>;
+  onNominatePerformer?: (playerId: string) => void;
+  nominationTargetId?: string | null;
+  roleAssignments?: Record<string, RoleId>;
 }
 
 export function PlayerGameScreen({
@@ -35,19 +39,37 @@ export function PlayerGameScreen({
   hasVoted,
   isReady,
   allPlayerSelections,
+  onNominatePerformer,
+  nominationTargetId,
+  roleAssignments,
 }: PlayerGameScreenProps) {
   const [showRole, setShowRole] = useState(false);
-  
+  const roleMap = roleAssignments ?? {};
   const currentPlayer = players.find(p => p.id === playerId);
   const role = roleId ? ROLES[roleId as RoleId] : null;
-  const isCorrupted = role?.team === 'corrupted';
-  
-  // Get other corrupted witches and their selections
+  const isCorrupted = role?.alignment === 'HOLLOW';
+
+  const availableIngredients = useMemo(() => {
+    if (!roleId) return Object.values(INGREDIENTS);
+    try {
+      const pool = getIngredientPoolForRole(roleId as RoleId);
+      const ids = Array.from(new Set([...(pool.core || []), ...(pool.occasional || [])]));
+      return ids.map((id) => INGREDIENTS[id]);
+    } catch {
+      return Object.values(INGREDIENTS);
+    }
+  }, [roleId]);
+
+  const hasNominated = Boolean(nominationTargetId);
+  const canSelectIngredient = hasNominated;
+
   const corruptedPlayers = players.filter(p => {
-    const playerRole = ROLES[p.roleId];
-    return playerRole?.team === 'corrupted' && p.id !== playerId;
+    const assignedRoleId = roleMap[p.id];
+    if (!assignedRoleId || p.id === playerId) return false;
+    const playerRole = ROLES[assignedRoleId];
+    return playerRole?.alignment === 'HOLLOW';
   });
-  
+
   const corruptedSelections = isCorrupted && allPlayerSelections 
     ? corruptedPlayers.map(p => ({
         player: p,
@@ -181,7 +203,7 @@ export function PlayerGameScreen({
               <div style={{ color: '#d4af37', fontWeight: '600', marginBottom: '4px' }}>
                 Your Goal:
               </div>
-              {role.description}
+              {role.shortDescription}
             </div>
           )}
         </div>
@@ -211,6 +233,84 @@ export function PlayerGameScreen({
 
         {/* Phase-Specific Content */}
         <div style={{ flex: 1 }}>
+          {/* Role or nomination blockers */}
+          {phase === Phase.CHOOSING && !roleId && (
+            <div style={{
+              marginBottom: '20px',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '2px solid rgba(212, 175, 55, 0.6)',
+              backgroundColor: 'rgba(10, 10, 30, 0.75)',
+              color: '#e2e8f0',
+              textAlign: 'center',
+            }}>
+              Waiting for the host to assign roles...
+            </div>
+          )}
+
+          {phase === Phase.CHOOSING && roleId && (
+            <div style={{
+              marginBottom: '20px',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '2px solid rgba(212, 175, 55, 0.35)',
+              backgroundColor: 'rgba(20, 15, 30, 0.7)',
+            }}>
+              <div style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#d4af37',
+                marginBottom: '12px',
+              }}>
+                Nominate the next Performer
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                gap: '10px',
+              }}>
+                {players.map((player) => {
+                  const isSelected = nominationTargetId === player.id;
+                  return (
+                    <button
+                      key={player.id}
+                      type="button"
+                      onClick={() => onNominatePerformer?.(player.id)}
+                      style={{
+                        backgroundColor: isSelected ? 'rgba(76, 29, 149, 0.8)' : 'rgba(30, 30, 60, 0.7)',
+                        border: `2px solid ${isSelected ? '#d4af37' : 'rgba(100, 100, 150, 0.4)'}`,
+                        borderRadius: '10px',
+                        padding: '12px',
+                        cursor: 'pointer',
+                        color: '#f1f5f9',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{player.name}</div>
+                      <div style={{
+                        marginTop: '6px',
+                        fontSize: '12px',
+                        color: isSelected ? '#d4af37' : '#94a3b8',
+                      }}>
+                        {isSelected ? 'Nominated' : 'Nominate'}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {!hasNominated && (
+                <div style={{
+                  marginTop: '12px',
+                  fontSize: '13px',
+                  color: '#94a3b8',
+                  textAlign: 'center',
+                }}>
+                  Nominate a performer to unlock your ingredient cards.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* CHOOSING PHASE - Ingredient Selection */}
           {phase === Phase.CHOOSING && (
             <div style={{
@@ -218,11 +318,11 @@ export function PlayerGameScreen({
               gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
               gap: '12px',
             }}>
-              {Object.values(INGREDIENTS).map((ingredient) => (
+              {availableIngredients.map((ingredient) => (
                 <button
                   key={ingredient.id}
                   onClick={() => onSelectIngredient?.(ingredient.id)}
-                  disabled={!!selectedIngredient}
+                  disabled={!canSelectIngredient || !!selectedIngredient}
                   style={{
                     backgroundColor: selectedIngredient === ingredient.id 
                       ? '#4c1d95' 
@@ -230,9 +330,11 @@ export function PlayerGameScreen({
                     border: `2px solid ${selectedIngredient === ingredient.id ? '#d4af37' : 'rgba(100, 100, 150, 0.5)'}`,
                     borderRadius: '12px',
                     padding: '16px',
-                    cursor: selectedIngredient ? 'not-allowed' : 'pointer',
+                    cursor: !canSelectIngredient || selectedIngredient ? 'not-allowed' : 'pointer',
                     transition: 'all 0.3s',
-                    opacity: selectedIngredient && selectedIngredient !== ingredient.id ? 0.5 : 1,
+                    opacity: (!canSelectIngredient && !selectedIngredient) || (selectedIngredient && selectedIngredient !== ingredient.id)
+                      ? 0.5
+                      : 1,
                     boxShadow: selectedIngredient === ingredient.id 
                       ? '0 0 20px rgba(212, 175, 55, 0.5)' 
                       : 'none',
@@ -257,10 +359,24 @@ export function PlayerGameScreen({
                     color: '#94a3b8',
                     fontStyle: 'italic',
                   }}>
-                    {ingredient.flavor}
+                    {ingredient.shortDescription}
                   </div>
                 </button>
               ))}
+            </div>
+          )}
+
+          {phase === Phase.CHOOSING && !canSelectIngredient && (
+            <div style={{
+              marginTop: '20px',
+              padding: '16px',
+              backgroundColor: 'rgba(59, 7, 100, 0.4)',
+              border: '2px solid rgba(212, 175, 55, 0.5)',
+              borderRadius: '12px',
+              textAlign: 'center',
+              color: '#e2e8f0',
+            }}>
+              Nominate a performer to unlock your ingredients.
             </div>
           )}
 

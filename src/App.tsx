@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Phase, Player, RoundState, OutcomeSummary } from '@/lib/types'
+import React, { useState, useEffect, useMemo } from 'react'
+import { Phase, Player, RoundState, OutcomeSummary, RoleId } from '@/lib/types'
 import { buildRoundDeck, nextPhase } from '@/lib/state'
 import { assignRandomRoles } from '@/lib/roles'
 import { ModeSelection } from '@/components/ModeSelection'
@@ -20,6 +20,18 @@ import Outcome from '@/screens/Outcome'
 import Council from '@/screens/Council'
 
 type AppMode = 'selection' | 'host-setup' | 'solo-lobby' | 'host-lobby' | 'host-game' | 'player-join' | 'player-game' | 'game-summary'
+
+interface SharedMultiplayerState {
+  roles: Record<string, RoleId>
+  performerVotes: Record<string, string>
+  performerId: string | null
+}
+
+const defaultSharedState: SharedMultiplayerState = {
+  roles: {},
+  performerVotes: {},
+  performerId: null,
+}
 
 // Player statistics tracking
 interface PlayerStats {
@@ -45,7 +57,26 @@ export default function App() {
   const [hasVoted, setHasVoted] = useState(false)
   const [gameStats, setGameStats] = useState<PlayerStats[]>([])
   const [gameWinner, setGameWinner] = useState<'coven' | 'corrupted' | 'draw'>('coven')
+  const [sharedGameState, setSharedGameState] = useState<SharedMultiplayerState | null>(null)
   const multiplayer = useSupabaseMultiplayer()
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const customEvent = event as CustomEvent<SharedMultiplayerState | null>
+      setSharedGameState(customEvent.detail ?? null)
+    }
+
+    window.addEventListener('gameStateUpdate', handler as EventListener)
+    return () => window.removeEventListener('gameStateUpdate', handler as EventListener)
+  }, [])
+
+  useEffect(() => {
+    if (!playerId || !sharedGameState) return
+    const assignedRole = sharedGameState.roles[playerId]
+    if (assignedRole) {
+      setPlayerRoleId(assignedRole)
+    }
+  }, [playerId, sharedGameState])
+
 
   // Game timers
   const choosingTimer = useGameTimer(60) // 60 seconds for choosing
@@ -102,6 +133,38 @@ export default function App() {
       }
     }
   }, [])
+
+  const isHostPlayer = useMemo(() => {
+    if (!playerId || !multiplayer.room) return false
+    return multiplayer.room.players.some(p => p.id === playerId && p.isHost)
+  }, [playerId, multiplayer.room])
+
+  useEffect(() => {
+    if (!isHostPlayer) return
+
+    const handler = (event: Event) => {
+      const customEvent = event as CustomEvent<{ playerId: string; action: string; data?: any }>
+      if (customEvent.detail?.action !== 'nominate_performer') return
+      const targetId = customEvent.detail.data?.targetId
+      if (!targetId) return
+
+      setSharedGameState(prev => {
+        const base = prev ?? defaultSharedState
+        const updated: SharedMultiplayerState = {
+          ...base,
+          performerVotes: {
+            ...base.performerVotes,
+            [customEvent.detail.playerId]: targetId,
+          },
+        }
+        void multiplayer.updateGameState(updated)
+        return updated
+      })
+    }
+
+    window.addEventListener('playerAction', handler as EventListener)
+    return () => window.removeEventListener('playerAction', handler as EventListener)
+  }, [isHostPlayer, multiplayer])
 
   function handleBegin(players: Player[]) {
     setRound({
@@ -186,6 +249,18 @@ export default function App() {
       const seed = `${multiplayer.room.id}-${Date.now()}`
       const assignedRoles = assignRandomRoles(playerCount, seed)
       
+      const roleAssignments = actualPlayers.reduce((acc, player, index) => {
+        acc[player.id] = assignedRoles[index]
+        return acc
+      }, {} as Record<string, RoleId>)
+
+      const nextSharedState: SharedMultiplayerState = {
+        ...defaultSharedState,
+        roles: roleAssignments,
+      }
+
+      setSharedGameState(nextSharedState)
+      await multiplayer.updateGameState(nextSharedState)
       await multiplayer.startGame()
       
       // Convert multiplayer players to game players with assigned roles
@@ -230,6 +305,8 @@ export default function App() {
   const handleLeave = () => {
     multiplayer.disconnect()
     localStorage.removeItem('multiplayer-session')
+    setSharedGameState(null)
+    setPlayerRoleId(undefined)
     setAppMode('selection')
   }
 
@@ -351,13 +428,24 @@ export default function App() {
     setAllPlayerSelections({})
     setHasVoted(false)
     setGameStats([])
+    setSharedGameState(null)
     setAppMode('host-lobby')
   }
   
   const handleBackToMenu = () => {
     multiplayer.disconnect()
     localStorage.removeItem('multiplayer-session')
+    setSharedGameState(null)
+    setPlayerRoleId(undefined)
     setAppMode('selection')
+  }
+
+  const handleNominatePerformer = async (targetId: string) => {
+    try {
+      await multiplayer.sendAction('nominate_performer', { targetId })
+    } catch (error) {
+      console.error('Failed to nominate performer:', error)
+    }
   }
 
   return (
@@ -435,7 +523,7 @@ export default function App() {
             <PlayerGameScreen
               playerId={playerId}
               playerName={playerName}
-              players={round.players}
+              players={multiplayer.room?.players ?? []}
               phase={round.phase}
               round={round.id}
               roleId={playerRoleId}
@@ -449,6 +537,9 @@ export default function App() {
               selectedIngredient={selectedIngredient}
               hasVoted={hasVoted}
               allPlayerSelections={allPlayerSelections}
+              onNominatePerformer={handleNominatePerformer}
+              nominationTargetId={playerId ? sharedGameState?.performerVotes?.[playerId] ?? null : null}
+              roleAssignments={sharedGameState?.roles}
             />
           )}
         </>
