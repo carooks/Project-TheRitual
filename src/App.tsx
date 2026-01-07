@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { Phase, Player, RoundState, OutcomeSummary, RoleId } from '@/lib/types'
-import { buildRoundDeck, nextPhase } from '@/lib/state'
-import { assignRandomRoles } from '@/lib/roles'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { Phase, Player, RoundState, OutcomeSummary } from '@/lib/types'
+import { buildRoundDeck } from '@/lib/state'
 import { ModeSelection } from '@/components/ModeSelection'
 import { HostSetup } from '@/components/HostSetup'
 import { HostLobby } from '@/components/HostLobby'
@@ -18,20 +17,10 @@ import Offering from '@/screens/Offering'
 import Reveal from '@/screens/Reveal'
 import Outcome from '@/screens/Outcome'
 import Council from '@/screens/Council'
+import { MultiplayerSharedState } from '@/lib/multiplayerState'
+import { applyIntent, EnginePlayerSeed, GameIntent } from '@/lib/gameEngine'
 
 type AppMode = 'selection' | 'host-setup' | 'solo-lobby' | 'host-lobby' | 'host-game' | 'player-join' | 'player-game' | 'game-summary'
-
-interface SharedMultiplayerState {
-  roles: Record<string, RoleId>
-  performerVotes: Record<string, string>
-  performerId: string | null
-}
-
-const defaultSharedState: SharedMultiplayerState = {
-  roles: {},
-  performerVotes: {},
-  performerId: null,
-}
 
 // Player statistics tracking
 interface PlayerStats {
@@ -53,15 +42,14 @@ export default function App() {
   const [playerName, setPlayerName] = useState<string>('')
   const [playerRoleId, setPlayerRoleId] = useState<string | undefined>(undefined)
   const [selectedIngredient, setSelectedIngredient] = useState<string | undefined>(undefined)
-  const [allPlayerSelections, setAllPlayerSelections] = useState<Record<string, string>>({})
   const [hasVoted, setHasVoted] = useState(false)
   const [gameStats, setGameStats] = useState<PlayerStats[]>([])
   const [gameWinner, setGameWinner] = useState<'coven' | 'corrupted' | 'draw'>('coven')
-  const [sharedGameState, setSharedGameState] = useState<SharedMultiplayerState | null>(null)
+  const [sharedGameState, setSharedGameState] = useState<MultiplayerSharedState | null>(null)
   const multiplayer = useSupabaseMultiplayer()
   useEffect(() => {
     const handler = (event: Event) => {
-      const customEvent = event as CustomEvent<SharedMultiplayerState | null>
+      const customEvent = event as CustomEvent<MultiplayerSharedState | null>
       setSharedGameState(customEvent.detail ?? null)
     }
 
@@ -71,9 +59,9 @@ export default function App() {
 
   useEffect(() => {
     if (!playerId || !sharedGameState) return
-    const assignedRole = sharedGameState.roles[playerId]
-    if (assignedRole) {
-      setPlayerRoleId(assignedRole)
+    const playerStatus = sharedGameState.players[playerId]
+    if (playerStatus?.roleId) {
+      setPlayerRoleId(playerStatus.roleId)
     }
   }, [playerId, sharedGameState])
 
@@ -139,32 +127,92 @@ export default function App() {
     return multiplayer.room.players.some(p => p.id === playerId && p.isHost)
   }, [playerId, multiplayer.room])
 
+  const dispatchGameIntent = useCallback((intent: GameIntent) => {
+    if (!isHostPlayer && intent.type !== 'START_GAME') {
+      return
+    }
+
+    setSharedGameState((prev) => {
+      try {
+        const nextState = applyIntent(prev, intent, { now: Date.now() })
+        void multiplayer.updateGameState(nextState)
+        return nextState
+      } catch (error) {
+        console.error('Failed to apply game intent', intent, error)
+        return prev
+      }
+    })
+  }, [isHostPlayer, multiplayer])
+
   useEffect(() => {
     if (!isHostPlayer) return
 
     const handler = (event: Event) => {
       const customEvent = event as CustomEvent<{ playerId: string; action: string; data?: any }>
-      if (customEvent.detail?.action !== 'nominate_performer') return
-      const targetId = customEvent.detail.data?.targetId
-      if (!targetId) return
+      const payload = customEvent.detail
+      if (!payload?.action || !payload.playerId) return
 
-      setSharedGameState(prev => {
-        const base = prev ?? defaultSharedState
-        const updated: SharedMultiplayerState = {
-          ...base,
-          performerVotes: {
-            ...base.performerVotes,
-            [customEvent.detail.playerId]: targetId,
-          },
-        }
-        void multiplayer.updateGameState(updated)
-        return updated
-      })
+      switch (payload.action) {
+        case 'nomination_vote':
+          if (payload.data?.targetId) {
+            dispatchGameIntent({
+              type: 'SUBMIT_NOMINATION_VOTE',
+              playerId: payload.playerId,
+              targetId: payload.data.targetId,
+            })
+          }
+          break
+        case 'ingredient_choice':
+          if (payload.data?.ingredientId) {
+            dispatchGameIntent({
+              type: 'SUBMIT_INGREDIENT',
+              playerId: payload.playerId,
+              ingredientId: payload.data.ingredientId,
+            })
+          }
+          break
+        case 'power_target':
+          if (payload.data?.targetId) {
+            dispatchGameIntent({
+              type: 'SUBMIT_POWER_TARGET',
+              playerId: payload.playerId,
+              targetId: payload.data.targetId,
+            })
+          }
+          break
+        case 'council_vote':
+          if (payload.data?.targetId) {
+            dispatchGameIntent({
+              type: 'SUBMIT_COUNCIL_VOTE',
+              playerId: payload.playerId,
+              targetId: payload.data.targetId,
+            })
+          }
+          break
+        default:
+          break
+      }
     }
 
     window.addEventListener('playerAction', handler as EventListener)
     return () => window.removeEventListener('playerAction', handler as EventListener)
-  }, [isHostPlayer, multiplayer])
+  }, [dispatchGameIntent, isHostPlayer])
+
+  useEffect(() => {
+    if (!isHostPlayer || !sharedGameState?.phaseExpiresAt) return
+
+    const delay = sharedGameState.phaseExpiresAt - Date.now()
+    if (delay <= 0) {
+      dispatchGameIntent({ type: 'PHASE_TIMEOUT' })
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      dispatchGameIntent({ type: 'PHASE_TIMEOUT' })
+    }, delay)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [dispatchGameIntent, isHostPlayer, sharedGameState?.phase, sharedGameState?.phaseExpiresAt])
 
   function handleBegin(players: Player[]) {
     setRound({
@@ -235,71 +283,31 @@ export default function App() {
   }
 
   const handleStartGame = async () => {
-    if (multiplayer.room) {
-      // Filter out empty/invalid players
-      const actualPlayers = multiplayer.room.players.filter(p => p.name && p.name.trim() !== '')
-      
-      if (actualPlayers.length < 2) {
-        alert('Need at least 2 players to start the game')
-        return
-      }
-      
-      // Assign random secret roles
-      const playerCount = actualPlayers.length
-      const seed = `${multiplayer.room.id}-${Date.now()}`
-      const assignedRoles = assignRandomRoles(playerCount, seed)
-      
-      const roleAssignments = actualPlayers.reduce((acc, player, index) => {
-        acc[player.id] = assignedRoles[index]
-        return acc
-      }, {} as Record<string, RoleId>)
+    if (!isHostPlayer || !multiplayer.room) return
 
-      const nextSharedState: SharedMultiplayerState = {
-        ...defaultSharedState,
-        roles: roleAssignments,
-      }
+    const actualPlayers = multiplayer.room.players.filter(p => p.name && p.name.trim() !== '')
 
-      setSharedGameState(nextSharedState)
-      await multiplayer.updateGameState(nextSharedState)
-      await multiplayer.startGame()
-      
-      // Convert multiplayer players to game players with assigned roles
-      const gamePlayers: Player[] = actualPlayers.map((p, index) => ({
-        id: p.id,
-        name: p.name,
-        roleId: assignedRoles[index] // Secret random role assignment
-      }))
-      
-      // Set role for current player
-      const currentPlayerIndex = actualPlayers.findIndex(p => p.id === playerId)
-      if (currentPlayerIndex !== -1) {
-        setPlayerRoleId(assignedRoles[currentPlayerIndex])
-      }
-      
-      // Initialize game stats
-      const initialStats: PlayerStats[] = gamePlayers.map(p => ({
-        playerId: p.id,
-        playerName: p.name,
-        roleId: p.roleId,
-        survived: true,
-        totalCorruption: 0,
-        ingredientsSelected: [],
-        votesReceived: 0,
-        correctVotes: 0,
-      }))
-      setGameStats(initialStats)
-      
-      setRound({
-        id: 1,
-        players: gamePlayers,
-        deck: [],
-        phase: Phase.CHOOSING
-      })
-      setAppMode('host-game')
-      
-      // Start choosing timer
-      choosingTimer.restart()
+    if (actualPlayers.length < 3) {
+      alert('Need at least 3 players to start the game')
+      return
     }
+
+    const seeds: EnginePlayerSeed[] = actualPlayers.map(p => ({
+      id: p.id,
+      name: p.name,
+      isHost: p.isHost,
+    }))
+
+    const seed = `${multiplayer.room.id}-${Date.now()}`
+
+    dispatchGameIntent({
+      type: 'START_GAME',
+      players: seeds,
+      seed,
+    })
+
+    await multiplayer.startGame()
+    setAppMode('host-game')
   }
 
   const handleLeave = () => {
@@ -331,11 +339,11 @@ export default function App() {
   }
 
   function handleNextRound() {
+    const nextRoundId = round.id + 1
     setSelectedIngredient(undefined)
-    setAllPlayerSelections({})
     setHasVoted(false)
     setRound({
-      id: round.id + 1,
+      id: nextRoundId,
       players: round.players,
       deck: [],
       phase: Phase.CHOOSING
@@ -346,12 +354,6 @@ export default function App() {
   // Player action handlers
   const handleSelectIngredient = (ingredientId: string) => {
     setSelectedIngredient(ingredientId)
-    // Update all selections
-    setAllPlayerSelections(prev => ({
-      ...prev,
-      [playerId]: ingredientId
-    }))
-    
     // Update stats - track ingredient selection and corruption
     setGameStats(prev => prev.map(p => {
       if (p.playerId === playerId) {
@@ -440,19 +442,59 @@ export default function App() {
     setAppMode('selection')
   }
 
-  const handleNominatePerformer = async (targetId: string) => {
+  const submitNominationVote = useCallback(async (targetId: string) => {
     try {
-      await multiplayer.sendAction('nominate_performer', { targetId })
+      await multiplayer.sendAction('nomination_vote', { targetId })
+      setHasVoted(true)
     } catch (error) {
-      console.error('Failed to nominate performer:', error)
+      console.error('Failed to submit nomination vote:', error)
     }
-  }
+  }, [multiplayer])
+
+  const submitIngredientChoice = useCallback(async (ingredientId: string) => {
+    try {
+      setSelectedIngredient(ingredientId)
+      await multiplayer.sendAction('ingredient_choice', { ingredientId })
+    } catch (error) {
+      console.error('Failed to submit ingredient choice:', error)
+    }
+  }, [multiplayer])
+
+  const submitCouncilVote = useCallback(async (targetId: string) => {
+    try {
+      await multiplayer.sendAction('council_vote', { targetId })
+      setHasVoted(true)
+    } catch (error) {
+      console.error('Failed to submit council vote:', error)
+    }
+  }, [multiplayer])
+
+  const submitPowerTarget = useCallback(async (targetId: string) => {
+    try {
+      await multiplayer.sendAction('power_target', { targetId })
+    } catch (error) {
+      console.error('Failed to use performer power:', error)
+    }
+  }, [multiplayer])
+
+  const requestAdvancePhase = useCallback(() => {
+    if (!isHostPlayer) return
+    dispatchGameIntent({ type: 'PHASE_TIMEOUT' })
+  }, [dispatchGameIntent, isHostPlayer])
+
+  const beginNominationVotePhase = useCallback(() => {
+    if (!isHostPlayer) return
+    dispatchGameIntent({ type: 'ADVANCE_FROM_DISCUSSION' })
+  }, [dispatchGameIntent, isHostPlayer])
+
+  const activePhase = sharedGameState?.phase ?? round.phase
+  const activeRoundNumber = sharedGameState?.roundNumber ?? round.id
 
   return (
     <div className="app-shell">
       {appMode !== 'selection' && (
         <div className="text-xs text-gray-500">
-          Phase: {round.phase} | Round: {round.id}
+          Phase: {activePhase} | Round: {activeRoundNumber}
         </div>
       )}
 
@@ -515,6 +557,9 @@ export default function App() {
                 round.phase === Phase.COUNCIL ? councilTimer.timeLeft :
                 undefined
               }
+              sharedState={sharedGameState}
+              onAdvancePhase={requestAdvancePhase}
+              onBeginNomination={beginNominationVotePhase}
             />
           )}
 
@@ -523,23 +568,17 @@ export default function App() {
             <PlayerGameScreen
               playerId={playerId}
               playerName={playerName}
-              players={multiplayer.room?.players ?? []}
-              phase={round.phase}
-              round={round.id}
+              roomPlayers={multiplayer.room?.players ?? []}
+              sharedState={sharedGameState}
+              fallbackPhase={round.phase}
+              fallbackRound={round.id}
               roleId={playerRoleId}
-              timer={
-                round.phase === Phase.CHOOSING ? choosingTimer.timeLeft :
-                round.phase === Phase.COUNCIL ? councilTimer.timeLeft :
-                undefined
-              }
-              onSelectIngredient={handleSelectIngredient}
-              onVoteNomination={handleVoteNomination}
-              selectedIngredient={selectedIngredient}
+              localSelection={selectedIngredient}
               hasVoted={hasVoted}
-              allPlayerSelections={allPlayerSelections}
-              onNominatePerformer={handleNominatePerformer}
-              nominationTargetId={playerId ? sharedGameState?.performerVotes?.[playerId] ?? null : null}
-              roleAssignments={sharedGameState?.roles}
+              onSubmitNomination={submitNominationVote}
+              onSubmitIngredient={submitIngredientChoice}
+              onSubmitCouncil={submitCouncilVote}
+              onSubmitPower={submitPowerTarget}
             />
           )}
         </>

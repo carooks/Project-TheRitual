@@ -1,0 +1,515 @@
+import { Alignment, IngredientId, IngredientPlay, Phase, Player, RoleId } from './types'
+import { assignRandomRoles, ROLES } from './roles'
+import { resolveRitual } from './ritual'
+import {
+  AlignmentInsight,
+  DEFAULT_GAME_CONFIG,
+  DEFAULT_PHASE_DURATIONS,
+  MultiplayerGameMeta,
+  MultiplayerSharedState,
+  PlayerStatus,
+  SHARED_STATE_SCHEMA_VERSION,
+} from './multiplayerState'
+
+export interface EnginePlayerSeed {
+  id: string
+  name: string
+  isHost?: boolean
+}
+
+export interface EngineContext {
+  now: number
+  random?: () => number
+}
+
+export type GameIntent =
+  | { type: 'START_GAME'; players: EnginePlayerSeed[]; seed: string }
+  | { type: 'ADVANCE_FROM_DISCUSSION' }
+  | { type: 'SUBMIT_NOMINATION_VOTE'; playerId: string; targetId: string }
+  | { type: 'COMPLETE_NOMINATION_REVEAL' }
+  | { type: 'SUBMIT_INGREDIENT'; playerId: string; ingredientId: IngredientId }
+  | { type: 'SUBMIT_POWER_TARGET'; playerId: string; targetId: string }
+  | { type: 'SUBMIT_COUNCIL_VOTE'; playerId: string; targetId: string }
+  | { type: 'MARK_TUTORIAL_COMPLETE' }
+  | { type: 'PHASE_TIMEOUT' }
+
+const DEFAULT_CONTEXT: EngineContext = {
+  now: Date.now(),
+  random: () => Math.random(),
+}
+
+export function applyIntent(
+  state: MultiplayerSharedState | null,
+  intent: GameIntent,
+  context: EngineContext = DEFAULT_CONTEXT
+): MultiplayerSharedState {
+  const ctx = {
+    now: context.now ?? Date.now(),
+    random: context.random ?? (() => Math.random()),
+  }
+
+  if (intent.type === 'START_GAME') {
+    return startNewGame(intent.players, intent.seed, ctx)
+  }
+
+  if (!state) {
+    throw new Error('Game state not initialized; call START_GAME first')
+  }
+
+  let next = cloneState(state)
+
+  switch (intent.type) {
+    case 'MARK_TUTORIAL_COMPLETE': {
+      next.tutorialComplete = true
+      return next
+    }
+    case 'ADVANCE_FROM_DISCUSSION': {
+      if (next.phase === Phase.NOMINATION_DISCUSSION) {
+        beginNominationVote(next, ctx)
+      }
+      return next
+    }
+    case 'SUBMIT_NOMINATION_VOTE': {
+      if (next.phase !== Phase.NOMINATION_VOTE) return next
+      handleNominationVote(next, intent.playerId, intent.targetId, ctx)
+      return next
+    }
+    case 'COMPLETE_NOMINATION_REVEAL': {
+      if (next.phase === Phase.NOMINATION_REVEAL) {
+        moveToIngredientChoice(next, ctx)
+      }
+      return next
+    }
+    case 'SUBMIT_INGREDIENT': {
+      if (next.phase !== Phase.INGREDIENT_CHOICE) return next
+      handleIngredientChoice(next, intent.playerId, intent.ingredientId)
+      maybeResolveRitual(next, ctx)
+      return next
+    }
+    case 'SUBMIT_POWER_TARGET': {
+      if (next.phase !== Phase.PERFORMER_POWER || !next.pendingPower) return next
+      handlePerformerPower(next, intent.playerId, intent.targetId, ctx)
+      return next
+    }
+    case 'SUBMIT_COUNCIL_VOTE': {
+      if (next.phase !== Phase.COUNCIL_VOTE) return next
+      handleCouncilVote(next, intent.playerId, intent.targetId, ctx)
+      return next
+    }
+    case 'PHASE_TIMEOUT': {
+      handlePhaseTimeout(next, ctx)
+      return next
+    }
+    default:
+      return next
+  }
+}
+
+function startNewGame(players: EnginePlayerSeed[], seed: string, ctx: EngineContext): MultiplayerSharedState {
+  if (players.length < 3) {
+    throw new Error('Need at least three players to start')
+  }
+
+  const assignedRoles = assignRandomRoles(players.length, seed)
+  const playerStatuses: Record<string, PlayerStatus> = {}
+
+  players.forEach((player, index) => {
+    const roleId = assignedRoles[index]
+    const roleDef = ROLES[roleId]
+    playerStatuses[player.id] = {
+      id: player.id,
+      name: player.name,
+      roleId,
+      alignment: roleDef.alignment,
+      alive: true,
+      isHost: player.isHost,
+    }
+  })
+
+  const hostPlayer = players.find((p) => p.isHost) ?? players[0]
+
+  const meta: MultiplayerGameMeta = {
+    schemaVersion: SHARED_STATE_SCHEMA_VERSION,
+    config: DEFAULT_GAME_CONFIG,
+    phaseDurations: DEFAULT_PHASE_DURATIONS,
+  }
+
+  const next: MultiplayerSharedState = {
+    meta,
+    phase: Phase.NOMINATION_DISCUSSION,
+    roundNumber: 1,
+    hostPlayerId: hostPlayer.id,
+    players: playerStatuses,
+    currentPerformerId: null,
+    nominationVotes: {},
+    nominationRevealOrder: [],
+    ingredientSelections: {},
+    ritualOutcome: undefined,
+    pendingPower: null,
+    protectionBlessing: null,
+    councilVotes: {},
+    alignmentInsights: {},
+    winnerAlignment: undefined,
+    winnerReason: undefined,
+    tutorialComplete: false,
+    phaseExpiresAt: ctx.now + meta.phaseDurations.discussionMs,
+  }
+
+  return next
+}
+
+function beginNominationVote(state: MultiplayerSharedState, ctx: EngineContext) {
+  state.phase = Phase.NOMINATION_VOTE
+  state.nominationVotes = {}
+  state.nominationRevealOrder = []
+  state.phaseExpiresAt = ctx.now + state.meta.phaseDurations.nominationVoteMs
+}
+
+function handleNominationVote(
+  state: MultiplayerSharedState,
+  playerId: string,
+  targetId: string,
+  ctx: EngineContext
+) {
+  if (!isPlayerAlive(state, playerId)) return
+  if (!isPlayerAlive(state, targetId)) return
+  if (playerId === targetId) return
+
+  const previousVote = state.nominationVotes[playerId]
+  state.nominationVotes[playerId] = targetId
+
+  if (!previousVote) {
+    const voteCount =
+      Object.values(state.nominationVotes).filter((vote) => vote === targetId).length || 1
+    state.nominationRevealOrder = [
+      ...state.nominationRevealOrder,
+      { targetId, voteNumber: voteCount },
+    ]
+  }
+
+  const alive = alivePlayerIds(state)
+  if (alive.every((id) => state.nominationVotes[id])) {
+    finalizePerformer(state, ctx)
+  }
+}
+
+function finalizePerformer(state: MultiplayerSharedState, ctx: EngineContext) {
+  const tally: Record<string, number> = {}
+  Object.values(state.nominationVotes).forEach((targetId) => {
+    tally[targetId] = (tally[targetId] || 0) + 1
+  })
+
+  const alive = alivePlayerIds(state)
+  if (alive.length === 0) {
+    state.currentPerformerId = null
+    return
+  }
+
+  const fallbackTarget = alive[Math.floor(ctx.random!() * alive.length)]
+  let performerId = fallbackTarget
+  let highest = 0
+
+  Object.entries(tally).forEach(([targetId, count]) => {
+    if (count > highest) {
+      performerId = targetId
+      highest = count
+    } else if (count === highest && ctx.random!() < 0.5) {
+      performerId = targetId
+    }
+  })
+
+  state.currentPerformerId = performerId
+  state.phase = Phase.NOMINATION_REVEAL
+  state.phaseExpiresAt = ctx.now + state.meta.phaseDurations.revealMs
+}
+
+function moveToIngredientChoice(state: MultiplayerSharedState, ctx: EngineContext) {
+  state.phase = Phase.INGREDIENT_CHOICE
+  state.ingredientSelections = {}
+  state.phaseExpiresAt = ctx.now + state.meta.phaseDurations.ingredientChoiceMs
+}
+
+function handleIngredientChoice(
+  state: MultiplayerSharedState,
+  playerId: string,
+  ingredientId: IngredientId
+) {
+  if (!isPlayerAlive(state, playerId)) return
+  state.ingredientSelections[playerId] = ingredientId
+}
+
+function maybeResolveRitual(state: MultiplayerSharedState, ctx: EngineContext) {
+  if (state.phase !== Phase.INGREDIENT_CHOICE) return
+  const alive = alivePlayerIds(state)
+  const everyoneLocked = alive.every((id) => state.ingredientSelections[id])
+
+  if (!everyoneLocked) return
+
+  resolveCurrentRitual(state, ctx)
+}
+
+function resolveCurrentRitual(state: MultiplayerSharedState, ctx: EngineContext) {
+  if (!state.currentPerformerId) return
+  const ingredientPlays: IngredientPlay[] = Object.entries(state.ingredientSelections).map(
+    ([playerId, ingredientId]) => ({ playerId, ingredientId })
+  )
+
+  const playersForResolver: Player[] = Object.values(state.players).map((p) => ({
+    id: p.id,
+    name: p.name,
+    roleId: p.roleId,
+    alignment: p.alignment,
+    alive: p.alive,
+  }))
+
+  const { outcome, deadPlayerIds } = resolveRitual({
+    players: playersForResolver,
+    performerId: state.currentPerformerId,
+    roundNumber: state.roundNumber,
+    ingredientPlays,
+    config: state.meta.config,
+  })
+
+  if (outcome.state === 'BACKFIRED' && !outcome.performerDies) {
+    outcome.performerDies = true
+    if (!deadPlayerIds.includes(state.currentPerformerId)) {
+      deadPlayerIds.push(state.currentPerformerId)
+    }
+  }
+
+  deadPlayerIds.forEach((id) => {
+    const status = state.players[id]
+    if (status) {
+      status.alive = false
+    }
+  })
+
+  state.ritualOutcome = outcome
+  state.phase = Phase.RITUAL_RESOLUTION
+  state.phaseExpiresAt = ctx.now + state.meta.phaseDurations.revealMs
+
+  const performerRole = state.players[state.currentPerformerId]?.roleId
+
+  if (performerRole === 'PROTECTION' && outcome.state === 'PURE') {
+    state.protectionBlessing = state.currentPerformerId
+  } else {
+    state.protectionBlessing = null
+  }
+
+  if (
+    performerRole === 'ORACLE' &&
+    (outcome.state === 'PURE' || outcome.state === 'TAINTED')
+  ) {
+    const targets = alivePlayerIds(state).filter((id) => id !== state.currentPerformerId)
+    if (targets.length > 0) {
+      state.pendingPower = {
+        type: 'ALIGNMENT_REVEAL',
+        performerId: state.currentPerformerId,
+        availableTargets: targets,
+        expiresAt: ctx.now + state.meta.phaseDurations.performerPowerMs,
+      }
+    }
+  } else {
+    state.pendingPower = null
+  }
+}
+
+function handlePerformerPower(
+  state: MultiplayerSharedState,
+  playerId: string,
+  targetId: string,
+  ctx: EngineContext
+) {
+  const pending = state.pendingPower
+  if (!pending) return
+  if (pending.performerId !== playerId) return
+  if (!pending.availableTargets.includes(targetId)) return
+
+  const target = state.players[targetId]
+  if (!target) return
+
+  pending.used = true
+  pending.targetId = targetId
+  pending.revealedAlignment = target.alignment
+  pending.accurate = true
+
+  const entry: AlignmentInsight = {
+    targetId,
+    alignment: target.alignment,
+    accurate: true,
+    recordedAt: ctx.now,
+  }
+
+  const existing = state.alignmentInsights[playerId] ?? []
+  state.alignmentInsights[playerId] = [...existing, entry]
+
+  moveToCouncilVote(state, ctx)
+}
+
+function handleCouncilVote(
+  state: MultiplayerSharedState,
+  playerId: string,
+  targetId: string,
+  ctx: EngineContext
+) {
+  if (!isPlayerAlive(state, playerId)) return
+  if (!isPlayerAlive(state, targetId)) return
+  if (playerId === targetId) return
+
+  state.councilVotes[playerId] = targetId
+
+  const alive = alivePlayerIds(state)
+  if (alive.every((id) => state.councilVotes[id])) {
+    finalizeCouncilVote(state, ctx)
+  }
+}
+
+function finalizeCouncilVote(state: MultiplayerSharedState, ctx: EngineContext) {
+  const tally: Record<string, number> = {}
+  Object.values(state.councilVotes).forEach((targetId) => {
+    tally[targetId] = (tally[targetId] || 0) + 1
+  })
+
+  const alive = alivePlayerIds(state)
+  if (alive.length === 0) {
+    concludeRound(state, ctx)
+    return
+  }
+
+  let eliminatedId = alive[0]
+  let highest = 0
+
+  Object.entries(tally).forEach(([targetId, count]) => {
+    if (count > highest) {
+      highest = count
+      eliminatedId = targetId
+    } else if (count === highest && ctx.random!() < 0.5) {
+      eliminatedId = targetId
+    }
+  })
+
+  if (state.protectionBlessing && eliminatedId === state.protectionBlessing) {
+    // Blessing prevents burn this round
+    state.protectionBlessing = null
+  } else {
+    const target = state.players[eliminatedId]
+    if (target) {
+      target.alive = false
+    }
+    state.protectionBlessing = null
+  }
+
+  concludeRound(state, ctx)
+}
+
+function handlePhaseTimeout(state: MultiplayerSharedState, ctx: EngineContext) {
+  switch (state.phase) {
+    case Phase.NOMINATION_DISCUSSION:
+      beginNominationVote(state, ctx)
+      break
+    case Phase.NOMINATION_VOTE:
+      finalizePerformer(state, ctx)
+      break
+    case Phase.NOMINATION_REVEAL:
+      moveToIngredientChoice(state, ctx)
+      break
+    case Phase.INGREDIENT_CHOICE:
+      resolveCurrentRitual(state, ctx)
+      break
+    case Phase.RITUAL_RESOLUTION:
+      if (state.pendingPower) {
+        moveToPerformerPower(state, ctx)
+      } else {
+        moveToCouncilVote(state, ctx)
+      }
+      break
+    case Phase.PERFORMER_POWER:
+      moveToCouncilVote(state, ctx)
+      break
+    case Phase.COUNCIL_VOTE:
+      finalizeCouncilVote(state, ctx)
+      break
+    default:
+      break
+  }
+}
+
+function moveToPerformerPower(state: MultiplayerSharedState, ctx: EngineContext) {
+  if (!state.pendingPower) {
+    moveToCouncilVote(state, ctx)
+    return
+  }
+  state.phase = Phase.PERFORMER_POWER
+  state.phaseExpiresAt = ctx.now + state.meta.phaseDurations.performerPowerMs
+}
+
+function moveToCouncilVote(state: MultiplayerSharedState, ctx: EngineContext) {
+  state.phase = Phase.COUNCIL_VOTE
+  state.councilVotes = {}
+  state.phaseExpiresAt = ctx.now + state.meta.phaseDurations.councilVoteMs
+  state.pendingPower = null
+}
+
+function concludeRound(state: MultiplayerSharedState, ctx: EngineContext) {
+  const winner = checkWinner(state)
+  if (winner) {
+    state.winnerAlignment = winner.alignment
+    state.winnerReason = winner.reason
+    state.phase = Phase.GAME_OVER
+    state.phaseExpiresAt = null
+    return
+  }
+
+  state.roundNumber += 1
+  state.phase = Phase.NOMINATION_DISCUSSION
+  state.currentPerformerId = null
+  state.nominationVotes = {}
+  state.nominationRevealOrder = []
+  state.ingredientSelections = {}
+  state.ritualOutcome = undefined
+  state.pendingPower = null
+  state.protectionBlessing = null
+  state.councilVotes = {}
+  state.phaseExpiresAt = ctx.now + state.meta.phaseDurations.discussionMs
+}
+
+function checkWinner(
+  state: MultiplayerSharedState
+): { alignment: Alignment; reason: string } | null {
+  const alive = Object.values(state.players).filter((p) => p.alive)
+  const coven = alive.filter((p) => p.alignment === 'COVEN').length
+  const hollow = alive.filter((p) => p.alignment === 'HOLLOW').length
+
+  if (hollow === 0 && coven > 0) {
+    return { alignment: 'COVEN', reason: 'All Hollow witches have been eliminated.' }
+  }
+
+  if (hollow >= coven && hollow > 0) {
+    return { alignment: 'HOLLOW', reason: 'Hollow equal or outnumber the Coven.' }
+  }
+
+  if (state.roundNumber >= state.meta.config.maxRounds) {
+    return { alignment: 'COVEN', reason: 'The Coven endures through the final round.' }
+  }
+
+  return null
+}
+
+function alivePlayerIds(state: MultiplayerSharedState): string[] {
+  return Object.values(state.players)
+    .filter((p) => p.alive)
+    .map((p) => p.id)
+}
+
+function isPlayerAlive(state: MultiplayerSharedState, playerId: string): boolean {
+  return Boolean(state.players[playerId]?.alive)
+}
+
+function cloneState<T>(value: T): T {
+  const structured = (globalThis as typeof globalThis & { structuredClone?: (val: unknown) => unknown })
+    .structuredClone
+  if (structured) {
+    return structured(value) as T
+  }
+  return JSON.parse(JSON.stringify(value)) as T
+}
