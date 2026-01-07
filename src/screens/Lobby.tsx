@@ -19,29 +19,36 @@ export default function Lobby({ onBegin }: Props) {
     audio.volume = 0.35
     audioRef.current = audio
 
+    const unlockEvents: Array<keyof DocumentEventMap> = ['pointerdown', 'keydown', 'touchstart', 'mousedown']
+    let listenersAttached = false
+
+    const removeUnlockListeners = () => {
+      if (!listenersAttached) return
+      listenersAttached = false
+      unlockEvents.forEach(evt => document.removeEventListener(evt, tryPlay))
+    }
+
     const tryPlay = () => {
-      audio.play().then(() => {
-        document.removeEventListener('pointerdown', tryPlay)
-        document.removeEventListener('keydown', tryPlay)
-      }).catch(() => {
-        // Ignore play errors; user interaction will retry.
+      audio.play().then(removeUnlockListeners).catch(() => {
+        // Ignore errors; listener remains for the next interaction.
       })
     }
 
-    const initialPlay = audio.play()
-    if (initialPlay) {
-      initialPlay.catch(() => {
-        document.addEventListener('pointerdown', tryPlay)
-        document.addEventListener('keydown', tryPlay)
-      })
+    const attachUnlockListeners = () => {
+      if (listenersAttached) return
+      listenersAttached = true
+      unlockEvents.forEach(evt => document.addEventListener(evt, tryPlay, { passive: true }))
     }
+
+    audio.play().catch(() => {
+      attachUnlockListeners()
+    })
 
     return () => {
       audio.pause()
       audio.currentTime = 0
       audioRef.current = null
-      document.removeEventListener('pointerdown', tryPlay)
-      document.removeEventListener('keydown', tryPlay)
+      removeUnlockListeners()
     }
   }, [])
 
