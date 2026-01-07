@@ -557,61 +557,108 @@ export function PlayerGameScreen({
                 gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
                 gap: '10px',
               }}>
-                {availableIngredients.map((ingredient) => (
+                {availableIngredients.map((ingredient) => {
+                  const lastUsed = sharedState?.lastUsedIngredients?.[playerId]
+                  const onCooldown = lastUsed === ingredient.id
+                  
+                  return (
                   <button
                     key={ingredient.id}
-                    onClick={() => onSubmitIngredient?.(ingredient.id)}
-                    disabled={!playerAlive || Boolean(selectedIngredient)}
+                    onClick={() => !onCooldown && onSubmitIngredient?.(ingredient.id)}
+                    disabled={!playerAlive || Boolean(selectedIngredient) || onCooldown}
                     style={{
                       backgroundColor: selectedIngredient === ingredient.id
                         ? '#4c1d95'
+                        : onCooldown
+                        ? 'rgba(60, 60, 80, 0.4)'
                         : 'rgba(30, 30, 60, 0.7)',
-                      border: `2px solid ${selectedIngredient === ingredient.id ? '#d4af37' : 'rgba(100, 100, 150, 0.5)'}`,
+                      border: `2px solid ${
+                        selectedIngredient === ingredient.id 
+                          ? '#d4af37' 
+                          : onCooldown
+                          ? 'rgba(148, 163, 184, 0.3)'
+                          : 'rgba(100, 100, 150, 0.5)'
+                      }`,
                       borderRadius: '12px',
                       padding: '12px',
-                      cursor: !playerAlive || selectedIngredient ? 'not-allowed' : 'pointer',
+                      cursor: !playerAlive || selectedIngredient || onCooldown ? 'not-allowed' : 'pointer',
                       transition: 'all 0.3s',
-                      opacity: !playerAlive || (selectedIngredient && selectedIngredient !== ingredient.id)
-                        ? 0.5
+                      opacity: !playerAlive || (selectedIngredient && selectedIngredient !== ingredient.id) || onCooldown
+                        ? 0.4
                         : 1,
                       boxShadow: selectedIngredient === ingredient.id
                         ? '0 0 20px rgba(212, 175, 55, 0.5)'
                         : 'none',
+                      position: 'relative' as const,
                     }}
                   >
+                    {onCooldown && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '6px',
+                        right: '6px',
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                      }}>
+                        ⏳
+                      </div>
+                    )}
                     <div style={{
                       fontSize: '36px',
                       marginBottom: '8px',
+                      filter: onCooldown ? 'grayscale(80%)' : 'none',
                     }}>
                       {ingredient.icon}
                     </div>
                     <div style={{
                       fontSize: '14px',
                       fontWeight: '600',
-                      color: '#f1f5f9',
+                      color: onCooldown ? '#94a3b8' : '#f1f5f9',
                       marginBottom: '4px',
                     }}>
                       {ingredient.name}
                     </div>
-                    <div style={{
-                      fontSize: '10px',
-                      fontWeight: '600',
-                      color: ingredient.corruptionValue < 0 ? '#4ade80' : ingredient.corruptionValue > 0.1 ? '#f87171' : '#fbbf24',
-                      marginBottom: '4px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}>
-                      {ingredient.corruptionValue < 0 ? '✓ Helpful' : ingredient.corruptionValue > 0.1 ? '⚠ Harmful' : '○ Neutral'}
-                    </div>
+                    {onCooldown ? (
+                      <div style={{
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        color: '#94a3b8',
+                        marginBottom: '4px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                      }}>
+                        ⏳ Cooldown
+                      </div>
+                    ) : (
+                      <div style={{
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        color: ingredient.corruptionValue < 0 ? '#4ade80' : ingredient.corruptionValue > 0.1 ? '#f87171' : '#fbbf24',
+                        marginBottom: '4px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                      }}>
+                        {ingredient.corruptionValue < 0 ? '✓ Helpful' : ingredient.corruptionValue > 0.1 ? '⚠ Harmful' : '○ Neutral'}
+                      </div>
+                    )}
                     <div style={{
                       fontSize: '11px',
                       color: '#94a3b8',
                       fontStyle: 'italic',
                     }}>
-                      {ingredient.shortDescription}
+                      {onCooldown ? 'Used last round' : ingredient.shortDescription}
                     </div>
                   </button>
-                ))}
+                )})}
               </div>
 
               {selectedIngredient && (
@@ -800,6 +847,7 @@ export function PlayerGameScreen({
 
                           // Targeted powers
                           const powerInstructions = {
+                            INGREDIENT_REVEAL: '🔮 The ritual grants you sight. Select a target to see what ingredient they played.',
                             ALIGNMENT_REVEAL: '✨ The ritual grants you insight. Select a target to reveal their alignment.',
                             PROTECT_PLAYER: '🛡️ Your protective wards overflow. Choose someone to shield from the next death.',
                             STEAL_VISION: '👁️ Your power mirrors another\'s sight. Choose whose visions to steal.'
@@ -827,7 +875,8 @@ export function PlayerGameScreen({
                                   if (!target) return null;
                                   
                                   const buttonLabels = {
-                                    ALIGNMENT_REVEAL: '🔮 Reveal alignment',
+                                    INGREDIENT_REVEAL: '🔮 See ingredient',
+                                    ALIGNMENT_REVEAL: '✨ Reveal alignment',
                                     PROTECT_PLAYER: '🛡️ Protect',
                                     STEAL_VISION: '👁️ Steal visions'
                                   }
@@ -860,7 +909,7 @@ export function PlayerGameScreen({
                           )
                         })()}
                       </div>
-                    ) : pendingPower?.used && pendingPower?.revealedAlignment ? (
+                    ) : pendingPower?.used && (pendingPower?.revealedAlignment || pendingPower?.revealedIngredient) ? (
                       <div style={{
                         padding: '24px',
                         borderRadius: '12px',
@@ -869,31 +918,67 @@ export function PlayerGameScreen({
                         textAlign: 'center',
                         boxShadow: '0 0 30px rgba(212, 175, 55, 0.4)',
                       }}>
-                        <div style={{
-                          fontSize: '18px',
-                          fontWeight: '600',
-                          color: '#d4af37',
-                          marginBottom: '12px',
-                          fontFamily: 'Georgia, serif',
-                        }}>
-                          ✨ Vision Received
-                        </div>
-                        <div style={{
-                          fontSize: '16px',
-                          color: '#e9d5ff',
-                          marginBottom: '8px',
-                        }}>
-                          {sharedState?.players[pendingPower.targetId!]?.name} is aligned with:
-                        </div>
-                        <div style={{
-                          fontSize: '24px',
-                          fontWeight: '700',
-                          color: pendingPower.revealedAlignment === 'COVEN' ? '#4ade80' : '#f87171',
-                          marginTop: '8px',
-                          fontFamily: 'Georgia, serif',
-                        }}>
-                          {pendingPower.revealedAlignment === 'COVEN' ? '🌟 THE COVEN' : '💀 THE HOLLOW'}
-                        </div>
+                        {pendingPower.revealedIngredient ? (
+                          <>
+                            <div style={{
+                              fontSize: '18px',
+                              fontWeight: '600',
+                              color: '#d4af37',
+                              marginBottom: '12px',
+                              fontFamily: 'Georgia, serif',
+                            }}>
+                              🔮 Ingredient Revealed
+                            </div>
+                            <div style={{
+                              fontSize: '16px',
+                              color: '#e9d5ff',
+                              marginBottom: '8px',
+                            }}>
+                              {sharedState?.players[pendingPower.targetId!]?.name} played:
+                            </div>
+                            <div style={{
+                              fontSize: '24px',
+                              fontWeight: '700',
+                              color: '#a78bfa',
+                              marginTop: '8px',
+                              fontFamily: 'Georgia, serif',
+                            }}>
+                              {(() => {
+                                const INGREDIENTS = require('../lib/ingredients').INGREDIENTS
+                                const ing = INGREDIENTS[pendingPower.revealedIngredient]
+                                return `${ing?.icon || ''} ${ing?.name || pendingPower.revealedIngredient}`
+                              })()}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{
+                              fontSize: '18px',
+                              fontWeight: '600',
+                              color: '#d4af37',
+                              marginBottom: '12px',
+                              fontFamily: 'Georgia, serif',
+                            }}>
+                              ✨ Vision Received
+                            </div>
+                            <div style={{
+                              fontSize: '16px',
+                              color: '#e9d5ff',
+                              marginBottom: '8px',
+                            }}>
+                              {sharedState?.players[pendingPower.targetId!]?.name} is aligned with:
+                            </div>
+                            <div style={{
+                              fontSize: '24px',
+                              fontWeight: '700',
+                              color: pendingPower.revealedAlignment === 'COVEN' ? '#4ade80' : '#f87171',
+                              marginTop: '8px',
+                              fontFamily: 'Georgia, serif',
+                            }}>
+                              {pendingPower.revealedAlignment === 'COVEN' ? '🌟 THE COVEN' : '💀 THE HOLLOW'}
+                            </div>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div style={{

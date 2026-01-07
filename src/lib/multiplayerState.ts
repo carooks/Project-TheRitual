@@ -23,7 +23,8 @@ export interface AlignmentInsight {
 }
 
 export type PowerType = 
-  | 'ALIGNMENT_REVEAL'  // Oracle, Chronicler: See someone's alignment
+  | 'ALIGNMENT_REVEAL'  // Chronicler: See someone's alignment
+  | 'INGREDIENT_REVEAL' // Oracle: See what ingredient someone played this round
   | 'PROTECT_PLAYER'    // Protection: Shield a player from next death
   | 'DOUBLE_VOTE'       // Exorcist: Your next council vote counts twice
   | 'CHAOS_SPREAD'      // Hex/Hollow: Cause confusion or corrupt next ritual
@@ -38,6 +39,7 @@ export interface PendingPowerState {
   used?: boolean
   targetId?: string
   revealedAlignment?: Alignment | null
+  revealedIngredient?: IngredientId | null
   accurate?: boolean
   // For non-targeted powers
   applied?: boolean
@@ -73,6 +75,8 @@ export interface MultiplayerSharedState {
   protectionBlessing?: string | null
   councilVotes: Record<string, string>
   alignmentInsights: Record<string, AlignmentInsight[]>
+  ingredientInsights: Record<string, Array<{ targetId: string; ingredientId: IngredientId; roundNumber: number }>>
+  lastUsedIngredients: Record<string, IngredientId>  // Track last ingredient each player used for cooldown
   winnerAlignment?: Alignment
   winnerReason?: string
   tutorialComplete: boolean

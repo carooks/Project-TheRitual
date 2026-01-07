@@ -149,6 +149,8 @@ function startNewGame(players: EnginePlayerSeed[], seed: string, ctx: EngineCont
     protectionBlessing: null,
     councilVotes: {},
     alignmentInsights: {},
+    ingredientInsights: {},
+    lastUsedIngredients: {},
     winnerAlignment: undefined,
     winnerReason: undefined,
     tutorialComplete: false,
@@ -235,26 +237,37 @@ function handleIngredientChoice(
   ingredientId: IngredientId
 ) {
   if (!isPlayerAlive(state, playerId)) return
+  
+  // COOLDOWN: Can't use the same ingredient twice in a row
+  const lastUsed = state.lastUsedIngredients[playerId]
+  if (lastUsed === ingredientId) {
+    // Silently reject - ingredient still on cooldown
+    return
+  }
+  
   state.ingredientSelections[playerId] = ingredientId
+  // Track this ingredient for next round's cooldown
+  state.lastUsedIngredients[playerId] = ingredientId
 
   // CRYSTAL BALL: Oracle-exclusive ingredient that grants instant vision
   if (ingredientId === 'CRYSTAL_BALL') {
     const player = state.players[playerId]
     if (player && player.roleId === 'ORACLE') {
-      // Immediately reveal a random alive player's alignment to the Oracle
+      // Immediately reveal a random alive player's INGREDIENT CHOICE to the Oracle
       const targets = alivePlayerIds(state).filter((id) => id !== playerId)
       if (targets.length > 0) {
         const randomTarget = targets[Math.floor(Math.random() * targets.length)]
-        const target = state.players[randomTarget]
-        if (target) {
-          const entry: AlignmentInsight = {
+        const targetIngredient = state.ingredientSelections[randomTarget]
+        
+        // Only reveal if target has already selected (otherwise wait)
+        if (targetIngredient) {
+          const entry = {
             targetId: randomTarget,
-            alignment: target.alignment,
-            accurate: true,
-            recordedAt: Date.now(),
+            ingredientId: targetIngredient,
+            roundNumber: state.roundNumber,
           }
-          const existing = state.alignmentInsights[playerId] ?? []
-          state.alignmentInsights[playerId] = [...existing, entry]
+          const existing = state.ingredientInsights[playerId] ?? []
+          state.ingredientInsights[playerId] = [...existing, entry]
         }
       }
     }
@@ -324,7 +337,7 @@ function resolveCurrentRitual(state: MultiplayerSharedState, ctx: EngineContext)
     const targets = alivePlayerIds(state).filter((id) => id !== state.currentPerformerId)
     if (targets.length > 0) {
       state.pendingPower = {
-        type: 'ALIGNMENT_REVEAL',
+        type: 'INGREDIENT_REVEAL',
         performerId: state.currentPerformerId,
         availableTargets: targets,
         expiresAt: ctx.now + state.meta.phaseDurations.performerPowerMs,
@@ -347,10 +360,10 @@ function grantRolePower(
 
   switch (roleId) {
     case 'ORACLE':
-      // Oracle: See someone's alignment
+      // Oracle: See what ingredient someone played this round
       if (targets.length > 0) {
         state.pendingPower = {
-          type: 'ALIGNMENT_REVEAL',
+          type: 'INGREDIENT_REVEAL',
           performerId,
           availableTargets: targets,
           expiresAt: ctx.now + state.meta.phaseDurations.performerPowerMs,
@@ -448,6 +461,26 @@ function handlePerformerPower(
   pending.used = true
 
   switch (pending.type) {
+    case 'INGREDIENT_REVEAL': {
+      if (!pending.availableTargets.includes(targetId)) return
+      const targetIngredient = state.ingredientSelections[targetId]
+      if (!targetIngredient) return
+
+      pending.targetId = targetId
+      pending.revealedIngredient = targetIngredient
+      pending.accurate = true
+
+      const entry = {
+        targetId,
+        ingredientId: targetIngredient,
+        roundNumber: state.roundNumber,
+      }
+
+      const existing = state.ingredientInsights[playerId] ?? []
+      state.ingredientInsights[playerId] = [...existing, entry]
+      break
+    }
+
     case 'ALIGNMENT_REVEAL': {
       if (!pending.availableTargets.includes(targetId)) return
       const target = state.players[targetId]

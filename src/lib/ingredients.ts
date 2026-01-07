@@ -144,7 +144,7 @@ export const INGREDIENTS: Record<IngredientId, Ingredient> = {
     domain: "DIVINATION",
     effectTags: ["ALIGNMENT_REVEAL"],
     corruptionValue: 0.0,
-    shortDescription: "Oracle-exclusive: When you select this, immediately glimpse someone's true alignment.",
+    shortDescription: "Oracle-exclusive: When you select this, immediately glimpse what ingredient someone else chose.",
     flavorLines: [
       "The glass sphere shows what eyes cannot see.",
       "Crystal whispers secrets—truth unfiltered.",

@@ -279,6 +279,7 @@ export function TVDisplay({
                 {(() => {
                   const powerType = pendingPower.type
                   const powerTitles = {
+                    INGREDIENT_REVEAL: 'choosing whose ingredient to reveal',
                     ALIGNMENT_REVEAL: 'choosing a target to reveal',
                     PROTECT_PLAYER: 'choosing who to shield from death',
                     STEAL_VISION: 'choosing whose visions to steal',
