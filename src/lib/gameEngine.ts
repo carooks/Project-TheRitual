@@ -236,6 +236,29 @@ function handleIngredientChoice(
 ) {
   if (!isPlayerAlive(state, playerId)) return
   state.ingredientSelections[playerId] = ingredientId
+
+  // CRYSTAL BALL: Oracle-exclusive ingredient that grants instant vision
+  if (ingredientId === 'CRYSTAL_BALL') {
+    const player = state.players[playerId]
+    if (player && player.roleId === 'ORACLE') {
+      // Immediately reveal a random alive player's alignment to the Oracle
+      const targets = alivePlayerIds(state).filter((id) => id !== playerId)
+      if (targets.length > 0) {
+        const randomTarget = targets[Math.floor(Math.random() * targets.length)]
+        const target = state.players[randomTarget]
+        if (target) {
+          const entry: AlignmentInsight = {
+            targetId: randomTarget,
+            alignment: target.alignment,
+            accurate: true,
+            recordedAt: Date.now(),
+          }
+          const existing = state.alignmentInsights[playerId] ?? []
+          state.alignmentInsights[playerId] = [...existing, entry]
+        }
+      }
+    }
+  }
 }
 
 function maybeResolveRitual(state: MultiplayerSharedState, ctx: EngineContext) {
@@ -290,16 +313,14 @@ function resolveCurrentRitual(state: MultiplayerSharedState, ctx: EngineContext)
 
   const performerRole = state.players[state.currentPerformerId]?.roleId
 
-  if (performerRole === 'PROTECTION' && outcome.state === 'PURE') {
-    state.protectionBlessing = state.currentPerformerId
-  } else {
-    state.protectionBlessing = null
-  }
-
-  if (
+  // Grant powers based on successful rituals (PURE only)
+  if (outcome.state === 'PURE' && performerRole) {
+    grantRolePower(state, state.currentPerformerId, performerRole, ctx)
+  } else if (
     performerRole === 'ORACLE' &&
-    (outcome.state === 'PURE' || outcome.state === 'TAINTED')
+    outcome.state === 'TAINTED'
   ) {
+    // Oracle still gets reduced power on TAINTED (legacy behavior)
     const targets = alivePlayerIds(state).filter((id) => id !== state.currentPerformerId)
     if (targets.length > 0) {
       state.pendingPower = {
@@ -311,6 +332,106 @@ function resolveCurrentRitual(state: MultiplayerSharedState, ctx: EngineContext)
     }
   } else {
     state.pendingPower = null
+    state.protectionBlessing = null
+  }
+}
+
+// Grant role-specific powers when a performer completes a PURE ritual
+function grantRolePower(
+  state: MultiplayerSharedState,
+  performerId: string,
+  roleId: RoleId,
+  ctx: EngineContext
+) {
+  const targets = alivePlayerIds(state).filter((id) => id !== performerId)
+
+  switch (roleId) {
+    case 'ORACLE':
+      // Oracle: See someone's alignment
+      if (targets.length > 0) {
+        state.pendingPower = {
+          type: 'ALIGNMENT_REVEAL',
+          performerId,
+          availableTargets: targets,
+          expiresAt: ctx.now + state.meta.phaseDurations.performerPowerMs,
+        }
+      }
+      break
+
+    case 'PROTECTION':
+      // Protection: Gets passive blessing (legacy behavior preserved)
+      state.protectionBlessing = performerId
+      // Additionally, allow protecting another player
+      if (targets.length > 0) {
+        state.pendingPower = {
+          type: 'PROTECT_PLAYER',
+          performerId,
+          availableTargets: targets,
+          expiresAt: ctx.now + state.meta.phaseDurations.performerPowerMs,
+        }
+      }
+      break
+
+    case 'CHRONICLER':
+      // Chronicler: See someone's alignment (similar to Oracle)
+      if (targets.length > 0) {
+        state.pendingPower = {
+          type: 'ALIGNMENT_REVEAL',
+          performerId,
+          availableTargets: targets,
+          expiresAt: ctx.now + state.meta.phaseDurations.performerPowerMs,
+        }
+      }
+      break
+
+    case 'EXORCIST':
+      // Exorcist: Double vote power in next council
+      state.pendingPower = {
+        type: 'DOUBLE_VOTE',
+        performerId,
+        availableTargets: [],
+        expiresAt: ctx.now + state.meta.phaseDurations.performerPowerMs,
+        applied: true, // Auto-apply, no target needed
+      }
+      break
+
+    case 'HEX':
+      // Hex/Hollow Servant: Corrupt the next ritual or spread chaos
+      state.pendingPower = {
+        type: 'CHAOS_SPREAD',
+        performerId,
+        availableTargets: [],
+        expiresAt: ctx.now + state.meta.phaseDurations.performerPowerMs,
+        applied: true,
+      }
+      break
+
+    case 'HARBINGER':
+      // Harbinger: Force next ritual to be more extreme
+      state.pendingPower = {
+        type: 'AMPLIFY_CHAOS',
+        performerId,
+        availableTargets: [],
+        expiresAt: ctx.now + state.meta.phaseDurations.performerPowerMs,
+        applied: true,
+      }
+      break
+
+    case 'MIMIC':
+      // Mimic: Steal/copy insights from another player
+      if (targets.length > 0) {
+        state.pendingPower = {
+          type: 'STEAL_VISION',
+          performerId,
+          availableTargets: targets,
+          expiresAt: ctx.now + state.meta.phaseDurations.performerPowerMs,
+        }
+      }
+      break
+
+    default:
+      state.pendingPower = null
+      state.protectionBlessing = null
   }
 }
 
@@ -323,25 +444,60 @@ function handlePerformerPower(
   const pending = state.pendingPower
   if (!pending) return
   if (pending.performerId !== playerId) return
-  if (!pending.availableTargets.includes(targetId)) return
-
-  const target = state.players[targetId]
-  if (!target) return
 
   pending.used = true
-  pending.targetId = targetId
-  pending.revealedAlignment = target.alignment
-  pending.accurate = true
 
-  const entry: AlignmentInsight = {
-    targetId,
-    alignment: target.alignment,
-    accurate: true,
-    recordedAt: ctx.now,
+  switch (pending.type) {
+    case 'ALIGNMENT_REVEAL': {
+      if (!pending.availableTargets.includes(targetId)) return
+      const target = state.players[targetId]
+      if (!target) return
+
+      pending.targetId = targetId
+      pending.revealedAlignment = target.alignment
+      pending.accurate = true
+
+      const entry: AlignmentInsight = {
+        targetId,
+        alignment: target.alignment,
+        accurate: true,
+        recordedAt: ctx.now,
+      }
+
+      const existing = state.alignmentInsights[playerId] ?? []
+      state.alignmentInsights[playerId] = [...existing, entry]
+      break
+    }
+
+    case 'PROTECT_PLAYER': {
+      if (!pending.availableTargets.includes(targetId)) return
+      pending.targetId = targetId
+      // Mark this player as protected (we'll check this in next ritual resolution)
+      // For now, store in protectionBlessing
+      state.protectionBlessing = targetId
+      break
+    }
+
+    case 'STEAL_VISION': {
+      if (!pending.availableTargets.includes(targetId)) return
+      const target = state.players[targetId]
+      if (!target) return
+
+      pending.targetId = targetId
+      // Copy all insights from target player to performer
+      const targetInsights = state.alignmentInsights[targetId] ?? []
+      const performerInsights = state.alignmentInsights[playerId] ?? []
+      state.alignmentInsights[playerId] = [...performerInsights, ...targetInsights]
+      break
+    }
+
+    case 'DOUBLE_VOTE':
+    case 'CHAOS_SPREAD':
+    case 'AMPLIFY_CHAOS':
+      // These are passive/auto-applied powers, no target needed
+      pending.applied = true
+      break
   }
-
-  const existing = state.alignmentInsights[playerId] ?? []
-  state.alignmentInsights[playerId] = [...existing, entry]
 
   moveToCouncilVote(state, ctx)
 }

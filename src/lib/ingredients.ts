@@ -137,6 +137,19 @@ export const INGREDIENTS: Record<IngredientId, Ingredient> = {
       "Moonlit fiber hums between distant hearts.",
     ],
   },
+  CRYSTAL_BALL: {
+    id: "CRYSTAL_BALL",
+    name: "Crystal Ball",
+    icon: "🔮",
+    domain: "DIVINATION",
+    effectTags: ["ALIGNMENT_REVEAL"],
+    corruptionValue: 0.0,
+    shortDescription: "Oracle-exclusive: When you select this, immediately glimpse someone's true alignment.",
+    flavorLines: [
+      "The glass sphere shows what eyes cannot see.",
+      "Crystal whispers secrets—truth unfiltered.",
+    ],
+  },
 };
 
 export const INGREDIENT_LIST = Object.values(INGREDIENTS);

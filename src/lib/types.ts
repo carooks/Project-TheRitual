@@ -38,7 +38,8 @@ export type IngredientId =
   | "IRON_THORN"
   | "SHADOW_ASH"
   | "BLOOD_OF_THE_INNOCENT"
-  | "SILVER_THREAD";
+  | "SILVER_THREAD"
+  | "CRYSTAL_BALL";
 
 export type IngredientDomain =
   | "DIVINATION"   // vision, reveals, insight

@@ -748,46 +748,117 @@ export function PlayerGameScreen({
                   <div>
                     {canUsePower ? (
                       <div>
-                        <div style={{
-                          marginBottom: '16px',
-                          textAlign: 'center',
-                          color: '#e9d5ff',
-                          fontFamily: 'Georgia, serif',
-                          fontSize: '15px',
-                        }}>
-                          ✨ The ritual grants you insight. Select a target to reveal their alignment.
-                        </div>
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-                          gap: '12px',
-                        }}>
-                          {pendingPower?.availableTargets.map((targetId) => {
-                            const target = sharedState?.players[targetId];
-                            if (!target) return null;
+                        {(() => {
+                          const powerType = pendingPower?.type
+                          
+                          // Auto-applied powers (no target selection needed)
+                          if (powerType === 'DOUBLE_VOTE' || powerType === 'CHAOS_SPREAD' || powerType === 'AMPLIFY_CHAOS') {
+                            const powerMessages = {
+                              DOUBLE_VOTE: {
+                                title: '⚖️ Double Vote Power',
+                                desc: 'Your next council vote will count TWICE. Use it wisely to banish corruption!'
+                              },
+                              CHAOS_SPREAD: {
+                                title: '🌀 Chaos Spread',
+                                desc: 'You channel the Hollow\'s power. Your presence corrupts the next ritual...'
+                              },
+                              AMPLIFY_CHAOS: {
+                                title: '⚡ Chaos Amplifier',
+                                desc: 'Your power intensifies—the next ritual will be EXTREME (no middle ground).'
+                              }
+                            }
+                            const msg = powerMessages[powerType]
+                            
                             return (
-                              <button
-                                key={targetId}
-                                onClick={() => onSubmitPower?.(targetId)}
-                                style={{
-                                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(76, 29, 149, 0.6) 100%)',
-                                  border: '2px solid rgba(212, 175, 55, 0.5)',
-                                  borderRadius: '12px',
-                                  padding: '16px',
-                                  color: '#f3e8ff',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.3s',
-                                  boxShadow: '0 0 15px rgba(139, 92, 246, 0.3)',
-                                }}
-                              >
-                                <div style={{ fontWeight: 600 }}>{target.name}</div>
-                                <div style={{ fontSize: '12px', color: '#d4af37', marginTop: '6px' }}>
-                                  🔮 Reveal alignment
+                              <div style={{
+                                padding: '24px',
+                                borderRadius: '12px',
+                                border: '2px solid #d4af37',
+                                background: 'linear-gradient(135deg, rgba(76, 29, 149, 0.6) 0%, rgba(30, 30, 60, 0.8) 100%)',
+                                textAlign: 'center',
+                                boxShadow: '0 0 30px rgba(212, 175, 55, 0.4)',
+                              }}>
+                                <div style={{
+                                  fontSize: '20px',
+                                  fontWeight: '600',
+                                  color: '#d4af37',
+                                  marginBottom: '12px',
+                                  fontFamily: 'Georgia, serif',
+                                }}>
+                                  {msg?.title}
                                 </div>
-                              </button>
-                            );
-                          })}
-                        </div>
+                                <div style={{
+                                  fontSize: '15px',
+                                  color: '#e9d5ff',
+                                  fontFamily: 'Georgia, serif',
+                                }}>
+                                  {msg?.desc}
+                                </div>
+                              </div>
+                            )
+                          }
+
+                          // Targeted powers
+                          const powerInstructions = {
+                            ALIGNMENT_REVEAL: '✨ The ritual grants you insight. Select a target to reveal their alignment.',
+                            PROTECT_PLAYER: '🛡️ Your protective wards overflow. Choose someone to shield from the next death.',
+                            STEAL_VISION: '👁️ Your power mirrors another\'s sight. Choose whose visions to steal.'
+                          }
+                          const instruction = powerInstructions[powerType as keyof typeof powerInstructions] || 'Select a target for your power.'
+
+                          return (
+                            <>
+                              <div style={{
+                                marginBottom: '16px',
+                                textAlign: 'center',
+                                color: '#e9d5ff',
+                                fontFamily: 'Georgia, serif',
+                                fontSize: '15px',
+                              }}>
+                                {instruction}
+                              </div>
+                              <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                                gap: '12px',
+                              }}>
+                                {pendingPower?.availableTargets.map((targetId) => {
+                                  const target = sharedState?.players[targetId];
+                                  if (!target) return null;
+                                  
+                                  const buttonLabels = {
+                                    ALIGNMENT_REVEAL: '🔮 Reveal alignment',
+                                    PROTECT_PLAYER: '🛡️ Protect',
+                                    STEAL_VISION: '👁️ Steal visions'
+                                  }
+                                  const label = buttonLabels[powerType as keyof typeof buttonLabels] || '✨ Use power'
+
+                                  return (
+                                    <button
+                                      key={targetId}
+                                      onClick={() => onSubmitPower?.(targetId)}
+                                      style={{
+                                        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(76, 29, 149, 0.6) 100%)',
+                                        border: '2px solid rgba(212, 175, 55, 0.5)',
+                                        borderRadius: '12px',
+                                        padding: '16px',
+                                        color: '#f3e8ff',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s',
+                                        boxShadow: '0 0 15px rgba(139, 92, 246, 0.3)',
+                                      }}
+                                    >
+                                      <div style={{ fontWeight: 600 }}>{target.name}</div>
+                                      <div style={{ fontSize: '12px', color: '#d4af37', marginTop: '6px' }}>
+                                        {label}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          )
+                        })()}
                       </div>
                     ) : pendingPower?.used && pendingPower?.revealedAlignment ? (
                       <div style={{

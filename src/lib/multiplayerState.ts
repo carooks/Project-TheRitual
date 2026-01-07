@@ -22,8 +22,16 @@ export interface AlignmentInsight {
   recordedAt: number
 }
 
+export type PowerType = 
+  | 'ALIGNMENT_REVEAL'  // Oracle, Chronicler: See someone's alignment
+  | 'PROTECT_PLAYER'    // Protection: Shield a player from next death
+  | 'DOUBLE_VOTE'       // Exorcist: Your next council vote counts twice
+  | 'CHAOS_SPREAD'      // Hex/Hollow: Cause confusion or corrupt next ritual
+  | 'AMPLIFY_CHAOS'     // Harbinger: Force next ritual to extreme outcome
+  | 'STEAL_VISION'      // Mimic: Copy someone else's power or see their insights
+
 export interface PendingPowerState {
-  type: 'ALIGNMENT_REVEAL'
+  type: PowerType
   performerId: string
   availableTargets: string[]
   expiresAt: number
@@ -31,6 +39,8 @@ export interface PendingPowerState {
   targetId?: string
   revealedAlignment?: Alignment | null
   accurate?: boolean
+  // For non-targeted powers
+  applied?: boolean
 }
 
 export interface MultiplayerPhaseDurations {

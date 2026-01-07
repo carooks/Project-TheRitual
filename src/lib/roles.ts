@@ -85,7 +85,7 @@ export const ROLE_INGREDIENT_POOLS: RoleIngredientPool[] = [
   },
   {
     roleId: "ORACLE",
-    core: ["EYE_OF_NEWT", "BONE_DUST", "SILVER_THREAD"],
+    core: ["EYE_OF_NEWT", "BONE_DUST", "SILVER_THREAD", "CRYSTAL_BALL"],
     occasional: ["RAVEN_FEATHER"],
   },
   {

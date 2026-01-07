@@ -276,21 +276,48 @@ export function TVDisplay({
           <div>
             {pendingPower && performer ? (
               <>
-                <p style={{ color: '#fbcfe8', marginBottom: '12px' }}>
-                  {performer.name} is choosing among {pendingPowerTargets.length} targets.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {pendingPowerTargets.map((targetId) => {
-                    const target = displayPlayers.find((p) => p.id === targetId);
-                    if (!target) return null;
+                {(() => {
+                  const powerType = pendingPower.type
+                  const powerTitles = {
+                    ALIGNMENT_REVEAL: 'choosing a target to reveal',
+                    PROTECT_PLAYER: 'choosing who to shield from death',
+                    STEAL_VISION: 'choosing whose visions to steal',
+                    DOUBLE_VOTE: 'receives double vote power',
+                    CHAOS_SPREAD: 'spreading Hollow corruption',
+                    AMPLIFY_CHAOS: 'amplifying the next ritual'
+                  }
+                  const title = powerTitles[powerType] || 'using their power'
+                  
+                  // Auto-applied powers (no targets)
+                  if (powerType === 'DOUBLE_VOTE' || powerType === 'CHAOS_SPREAD' || powerType === 'AMPLIFY_CHAOS') {
                     return (
-                      <div key={targetId} style={voteRowStyle}>
-                        <span>{target.name}</span>
-                        <span>Awaiting reveal</span>
+                      <p style={{ color: '#fbcfe8', marginBottom: '12px' }}>
+                        {performer.name} {title}
+                      </p>
+                    )
+                  }
+
+                  // Targeted powers
+                  return (
+                    <>
+                      <p style={{ color: '#fbcfe8', marginBottom: '12px' }}>
+                        {performer.name} is {title} ({pendingPowerTargets.length} available)
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {pendingPowerTargets.map((targetId) => {
+                          const target = displayPlayers.find((p) => p.id === targetId);
+                          if (!target) return null;
+                          return (
+                            <div key={targetId} style={voteRowStyle}>
+                              <span>{target.name}</span>
+                              <span>Awaiting selection</span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+                    </>
+                  )
+                })()}
               </>
             ) : (
               <p style={{ color: '#fbcfe8' }}>No performer power available this round.</p>
