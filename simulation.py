@@ -61,11 +61,21 @@ def choose_performer(alive_ids):
     return random.choice(alive_ids)
 
 
-def choose_ingredient(alignment):
+def choose_ingredient(alignment, last_used=None):
+    """Choose ingredient with cooldown constraint."""
     if alignment == "HOLLOW":
         pool = SAFE + NEUTRAL + CORRUPT + CORRUPT + CORRUPT
     else:
         pool = SAFE + SAFE + SAFE + NEUTRAL + CORRUPT
+    
+    # Filter out the last used ingredient (cooldown)
+    if last_used is not None:
+        pool = [val for val in pool if val != last_used]
+    
+    # If pool is empty (shouldn't happen), allow reuse
+    if not pool:
+        pool = [last_used] if last_used is not None else SAFE
+    
     return random.choice(pool)
 
 
@@ -157,6 +167,7 @@ def run_game(n):
     } for i in range(n)]
 
     suspicion = [0.0 for _ in range(n)]
+    last_ingredients = [None for _ in range(n)]  # Track last used ingredient per player
     extra_infected = 0
 
     exorcist_idx = None
@@ -194,7 +205,14 @@ def run_game(n):
             break
 
         performer = choose_performer(alive_ids)
-        vals_by_player = {pid: choose_ingredient(players[pid]["alignment"]) for pid in alive_ids}
+        
+        # Choose ingredients with cooldown constraint
+        vals_by_player = {}
+        for pid in alive_ids:
+            ingredient = choose_ingredient(players[pid]["alignment"], last_ingredients[pid])
+            vals_by_player[pid] = ingredient
+            last_ingredients[pid] = ingredient  # Update last used
+            
         outcome, idx = compute_outcome(list(vals_by_player.values()))
 
         rounds_played += 1
