@@ -503,11 +503,11 @@ function applyInfectionMechanic(
   // Limit total infections to 2 per game
   if (state.infectedPlayers.length >= 2) return
 
-  // Calculate infection chance based on ritual outcome
+  // Calculate infection chance based on ritual outcome (balanced rates)
   const outcome = state.ritualOutcome
   let infectionChance = 0
-  if (outcome?.state === 'TAINTED') infectionChance = 0.15  // 15%
-  if (outcome?.state === 'BACKFIRED') infectionChance = 0.40  // 40%
+  if (outcome?.state === 'TAINTED') infectionChance = 0.08  // 8% (balanced)
+  if (outcome?.state === 'BACKFIRED') infectionChance = 0.25  // 25% (balanced)
 
   // Roll for infection
   if (ctx.random() > infectionChance) return

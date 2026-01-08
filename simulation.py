@@ -10,12 +10,12 @@ MAX_ROUNDS = 8
 PURE_THRESHOLD = 0.25
 BACKFIRE_THRESHOLD = 0.5
 
-# Infection tuning: gentler, and only for 6+ players (handled in loop)
+# Infection tuning: balanced for ~50/50 winrate
 INFECTION_START = 1
 INFECTION_END = 3
-MAX_EXTRA_INFECTED = 2  # Updated to match gameEngine.ts
-INFECT_TAINTED = 0.15   # Updated to match gameEngine.ts
-INFECT_BACKFIRE = 0.40  # Updated to match gameEngine.ts
+MAX_EXTRA_INFECTED = 2
+INFECT_TAINTED = 0.08   # Reduced from 0.15 for balance
+INFECT_BACKFIRE = 0.25  # Reduced from 0.40 for balance
 
 PURGING_START = 4
 PURGING_CHANCE = 0.25
