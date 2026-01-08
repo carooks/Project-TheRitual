@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button } from './UI/Button';
+import Button from './UI/Button';
 
 interface TutorialStep {
   title: string;

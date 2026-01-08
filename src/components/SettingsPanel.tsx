@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ColorBlindModeSelector, useColorBlindMode } from '../hooks/useColorBlindMode';
-import { Button } from './UI/Button';
+import Button from './UI/Button';
 
 interface SettingsPanelProps {
   onClose: () => void;
