@@ -2,6 +2,7 @@
 // @ts-ignore
 import QRCode from 'react-qr-code';
 import { MultiplayerPlayer } from '../hooks/useSupabaseMultiplayer';
+import { ConnectionStatus } from './UI/ConnectionStatus';
 
 interface HostLobbyProps {
   roomCode: string;
@@ -9,9 +10,10 @@ interface HostLobbyProps {
   onStartGame: (enableInfection: boolean, enableCorruption: boolean) => void;
   onCancel: () => void;
   onToggleReady: (playerId: string) => Promise<void>;
+  isConnected?: boolean;
 }
 
-export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleReady }: HostLobbyProps) {
+export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleReady, isConnected = true }: HostLobbyProps) {
   const [copied, setCopied] = useState(false);
   const [readyingPlayerId, setReadyingPlayerId] = useState<string | null>(null);
   const [enableInfection, setEnableInfection] = useState(false);
@@ -134,6 +136,16 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
         boxShadow: '0 8px 40px rgba(0, 0, 0, 0.9), 0 0 60px rgba(139, 92, 246, 0.3)',
         backdropFilter: 'blur(16px)',
       }}>
+        {/* Connection Status */}
+        <div style={{ 
+          position: 'absolute', 
+          top: '20px', 
+          right: '20px',
+          zIndex: 1,
+        }}>
+          <ConnectionStatus isConnected={isConnected} />
+        </div>
+
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <h1 style={{

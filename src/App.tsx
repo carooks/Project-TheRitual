@@ -10,8 +10,11 @@ import { TVDisplay } from '@/components/TVDisplay'
 import { PlayerGameScreen } from '@/components/PlayerGameScreen'
 import { GameSummary } from '@/components/GameSummary'
 import { TutorialOverlay } from '@/components/TutorialOverlay'
+import { Tutorial, useTutorial } from '@/components/Tutorial'
+import { SettingsPanel } from '@/components/SettingsPanel'
 import { useSupabaseMultiplayer } from '@/hooks/useSupabaseMultiplayer'
 import { useGameTimer } from '@/hooks/useGameTimer'
+import { useKeyboardShortcuts } from '@/hooks/useAccessibility'
 import Lobby from '@/screens/Lobby'
 import Choosing from '@/screens/Choosing'
 import Offering from '@/screens/Offering'
@@ -48,8 +51,11 @@ export default function App() {
   const [gameWinner, setGameWinner] = useState<'coven' | 'corrupted' | 'draw'>('coven')
   const [sharedGameState, setSharedGameState] = useState<MultiplayerSharedState | null>(null)
   const [showTutorial, setShowTutorial] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(false)
   const [lastSession, setLastSession] = useState<any>(null)
   const multiplayer = useSupabaseMultiplayer()
+  const tutorial = useTutorial()
   useEffect(() => {
     const handler = (event: Event) => {
       const customEvent = event as CustomEvent<MultiplayerSharedState | null>
@@ -73,6 +79,24 @@ export default function App() {
   // Game timers
   const choosingTimer = useGameTimer(60) // 60 seconds for choosing
   const councilTimer = useGameTimer(120) // 2 minutes for council discussion
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: ',',
+      ctrlKey: true,
+      handler: () => setShowSettings(true),
+      description: 'Open settings',
+    },
+    {
+      key: 'Escape',
+      handler: () => {
+        if (showSettings) setShowSettings(false);
+        if (tutorial.showTutorial) tutorial.setShowTutorial(false);
+      },
+      description: 'Close modals',
+    },
+  ], !showSettings && !tutorial.showTutorial);
 
   const [round, setRound] = useState<RoundState>({
     id: 1,
@@ -318,6 +342,7 @@ export default function App() {
   }
 
   const handlePlayerJoin = async (code: string, name: string) => {
+    setIsConnecting(true);
     try {
       const newPlayerId = await multiplayer.joinRoom(code, name)
       setRoomCode(code)
@@ -335,6 +360,8 @@ export default function App() {
     } catch (error) {
       console.error('Failed to join room:', error)
       alert('Failed to join room. Please check the room code.')
+    } finally {
+      setIsConnecting(false);
     }
   }
 
@@ -762,6 +789,7 @@ export default function App() {
           onStartGame={handleStartGame}
           onCancel={handleLeave}
           onToggleReady={(playerId) => multiplayer.toggleReady(playerId)}
+          isConnected={multiplayer.isConnected}
         />
       )}
 
@@ -771,6 +799,8 @@ export default function App() {
           initialRoomCode={roomCode}
           onJoin={handlePlayerJoin}
           onBack={handleLeave}
+          isConnecting={isConnecting}
+          isConnected={multiplayer.isConnected}
         />
       )}
 
@@ -795,6 +825,51 @@ export default function App() {
           onComplete={handleTutorialComplete}
           autoAdvanceMs={8000}
         />
+      )}
+
+      {/* Tutorial Component */}
+      {tutorial.showTutorial && (
+        <Tutorial onComplete={() => tutorial.setShowTutorial(false)} />
+      )}
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <SettingsPanel 
+          onClose={() => setShowSettings(false)}
+          onShowTutorial={() => {
+            setShowSettings(false);
+            tutorial.resetTutorial();
+          }}
+        />
+      )}
+
+      {/* Settings Button (floating) */}
+      {appMode !== 'selection' && !showSettings && !tutorial.showTutorial && (
+        <button
+          onClick={() => setShowSettings(true)}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(76, 29, 149, 0.9))',
+            border: '2px solid rgba(212, 175, 55, 0.5)',
+            color: '#e9d5ff',
+            fontSize: '20px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+          aria-label="Open settings"
+          title="Settings (Ctrl+,)"
+        >
+          ⚙️
+        </button>
       )}
 
       {/* Game Screens (both host and players) */}

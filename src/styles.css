@@ -7,6 +7,27 @@
   --card: #0f1113;
   --muted: #9aa4b2;
   --accent: #8f4bff;
+  
+  /* Color blind mode colors (can be overridden) */
+  --color-pure: #22c55e;
+  --color-tainted: #eab308;
+  --color-backfired: #ef4444;
+  --color-sacred: #3b82f6;
+  --color-hollow: #8b5cf6;
+  --color-accent: #d4af37;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 html,body,#root{

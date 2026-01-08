@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { generateWitchyNameVariations } from '../lib/nameGenerator';
+import { LoadingSpinner } from './UI/LoadingSpinner';
+import { ConnectionStatus } from './UI/ConnectionStatus';
 
 interface PlayerJoinProps {
   onJoin: (roomCode: string, playerName: string) => void;
   onBack: () => void;
   initialRoomCode?: string;
+  isConnecting?: boolean;
+  isConnected?: boolean;
 }
 
-export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps) {
+export function PlayerJoin({ onJoin, onBack, initialRoomCode, isConnecting = false, isConnected = true }: PlayerJoinProps) {
   const [roomCode, setRoomCode] = useState(initialRoomCode || '');
   const [playerName, setPlayerName] = useState('');
   const [inputName, setInputName] = useState('');
@@ -91,6 +95,16 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
         overflowY: 'auto',
         boxShadow: '0 12px 48px rgba(0, 0, 0, 0.9), 0 0 60px rgba(139, 92, 246, 0.3)',
       }}>
+        {/* Connection Status */}
+        <div style={{ 
+          position: 'absolute', 
+          top: '16px', 
+          right: '16px',
+          zIndex: 1,
+        }}>
+          <ConnectionStatus isConnected={isConnected} showLabel={false} />
+        </div>
+
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <h1 style={{
@@ -367,26 +381,46 @@ export function PlayerJoin({ onJoin, onBack, initialRoomCode }: PlayerJoinProps)
 
             <button
               type="submit"
-              disabled={!roomCode.trim() || !playerName.trim()}
+              disabled={!roomCode.trim() || !playerName.trim() || isConnecting}
               style={{
                 flex: 2,
-                background: roomCode && playerName
+                background: roomCode && playerName && !isConnecting
                   ? 'linear-gradient(135deg, #d4af37, #b8941f)'
                   : 'linear-gradient(135deg, rgba(60, 50, 40, 0.6), rgba(50, 40, 30, 0.6))',
-                color: roomCode && playerName ? 'rgba(20, 15, 10, 0.95)' : 'rgba(120, 110, 100, 0.8)',
-                border: `2px solid ${roomCode && playerName ? 'rgba(212, 175, 55, 0.8)' : 'rgba(80, 70, 60, 0.4)'}`,
+                color: roomCode && playerName && !isConnecting ? 'rgba(20, 15, 10, 0.95)' : 'rgba(120, 110, 100, 0.8)',
+                border: `2px solid ${roomCode && playerName && !isConnecting ? 'rgba(212, 175, 55, 0.8)' : 'rgba(80, 70, 60, 0.4)'}`,
                 borderRadius: '8px',
                 padding: '12px',
                 fontSize: '16px',
                 fontWeight: '600',
-                cursor: roomCode && playerName ? 'pointer' : 'not-allowed',
+                cursor: roomCode && playerName && !isConnecting ? 'pointer' : 'not-allowed',
                 transition: 'all 0.2s',
-                boxShadow: roomCode && playerName
+                boxShadow: roomCode && playerName && !isConnecting
                   ? '0 0 25px rgba(212, 175, 55, 0.4), 0 4px 12px rgba(0, 0, 0, 0.5)'
                   : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
               }}
             >
-              Join Game
+              {isConnecting ? (
+                <>
+                  <div
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid rgba(120, 110, 100, 0.3)',
+                      borderTop: '2px solid rgba(120, 110, 100, 0.8)',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                    }}
+                  />
+                  Joining...
+                </>
+              ) : (
+                'Join Game'
+              )}
             </button>
           </div>
         </form>

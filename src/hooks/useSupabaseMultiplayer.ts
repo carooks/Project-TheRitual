@@ -35,8 +35,9 @@ export interface MultiplayerRoom {
   status: 'lobby' | 'in-progress' | 'finished';
 }
 
-interface UseSupabaseMultiplayerReturn {
+export interface UseSupabaseMultiplayerReturn {
   isConnected: boolean;
+  connectionError: string | null;
   room: MultiplayerRoom | null;
   playerId: string | null;
   roomId: string | null;
@@ -49,6 +50,7 @@ interface UseSupabaseMultiplayerReturn {
   updateGameState: (gameState: any) => Promise<void>;
   sendAction: (action: string, data?: any) => Promise<void>;
   disconnect: () => void;
+  reconnect: () => Promise<void>;
 }
 
 function generateRoomCode(): string {
@@ -93,12 +95,14 @@ async function registerRoomCodeWithBridge(roomCode: string, roomId?: string | nu
 
 export function useSupabaseMultiplayer(): UseSupabaseMultiplayerReturn {
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [room, setRoom] = useState<MultiplayerRoom | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
   
   const channelRef = useRef<RealtimeChannel | null>(null);
   const roomCodeRef = useRef<string | null>(null);
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const createRoom = useCallback(async (hostName: string) => {
     try {
@@ -549,6 +553,10 @@ export function useSupabaseMultiplayer(): UseSupabaseMultiplayerReturn {
   }, [playerId]);
 
   const disconnect = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
     if (channelRef.current) {
       try {
         const supabase = getSupabaseClient();
@@ -563,7 +571,50 @@ export function useSupabaseMultiplayer(): UseSupabaseMultiplayerReturn {
     setPlayerId(null);
     setRoomId(null);
     roomCodeRef.current = null;
+    setConnectionError(null);
   }, []);
+
+  const reconnect = useCallback(async () => {
+    if (!roomId || !roomCodeRef.current) {
+      setConnectionError('No room to reconnect to');
+      return;
+    }
+
+    try {
+      setConnectionError(null);
+      console.log('Attempting to reconnect to room:', roomCodeRef.current);
+      await subscribeToRoom(roomId, roomCodeRef.current);
+    } catch (error) {
+      console.error('Reconnection failed:', error);
+      setConnectionError('Failed to reconnect. Please refresh the page.');
+      
+      // Retry after 5 seconds
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnect();
+      }, 5000);
+    }
+  }, [roomId, subscribeToRoom]);
+
+  // Monitor connection status
+  useEffect(() => {
+    if (!channelRef.current) return;
+
+    const checkConnection = () => {
+      if (channelRef.current && channelRef.current.state !== 'joined') {
+        console.warn('Lost connection to room, attempting reconnect...');
+        setIsConnected(false);
+        setConnectionError('Connection lost, reconnecting...');
+        reconnect();
+      }
+    };
+
+    const interval = setInterval(checkConnection, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [reconnect]);
 
   // Polling fallback - refresh room data every 2 seconds
   useEffect(() => {
@@ -585,6 +636,7 @@ export function useSupabaseMultiplayer(): UseSupabaseMultiplayerReturn {
 
   return {
     isConnected,
+    connectionError,
     room,
     playerId,
     roomId,
@@ -596,6 +648,7 @@ export function useSupabaseMultiplayer(): UseSupabaseMultiplayerReturn {
     startGame,
     updateGameState,
     sendAction,
-    disconnect
+    disconnect,
+    reconnect,
   };
 }
