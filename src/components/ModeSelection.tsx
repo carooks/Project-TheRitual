@@ -1,19 +1,13 @@
 import { useState } from 'react';
 
 interface ModeSelectionProps {
-  onSelectMode: (mode: 'solo' | 'host' | 'join') => void;
+  onSelectMode: (mode: 'host' | 'join') => void;
 }
 
 export function ModeSelection({ onSelectMode }: ModeSelectionProps) {
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
 
   const modes = [
-    {
-      id: 'solo',
-      title: 'Solo Mode',
-      description: 'Track your game on this device only',
-      icon: '🔮',
-    },
     {
       id: 'host',
       title: 'Host Game',
@@ -31,8 +25,11 @@ export function ModeSelection({ onSelectMode }: ModeSelectionProps) {
   return (
     <div 
       style={{
-        minHeight: '100vh',
-        background: 'radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.4) 0%, rgba(17, 24, 39, 0.95) 70%)',
+        position: 'fixed',
+        inset: 0,
+        backgroundImage: 'url(/assets/backgrounds/title-screen.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -41,19 +38,14 @@ export function ModeSelection({ onSelectMode }: ModeSelectionProps) {
       role="main" 
       aria-label="Mode selection"
     >
-      <div style={{ maxWidth: '600px', width: '100%' }}>
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <img 
-            src="/assets/backgrounds/title-screen.png" 
-            alt="The Ritual"
-            style={{
-              maxWidth: '100%',
-              height: 'auto',
-              marginBottom: '20px',
-              filter: 'drop-shadow(0 0 30px rgba(212, 175, 55, 0.3))',
-            }}
-          />
-        </div>
+      {/* Dark Overlay */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(135deg, rgba(5, 8, 20, 0.85), rgba(30, 10, 50, 0.85))',
+      }} />
+
+      <div style={{ maxWidth: '600px', width: '100%', position: 'relative', zIndex: 1 }}>
         <div style={{
           textAlign: 'center',
           marginBottom: '32px',

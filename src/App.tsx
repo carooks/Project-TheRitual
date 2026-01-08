@@ -25,7 +25,7 @@ import Council from '@/screens/Council'
 import { MultiplayerSharedState } from '@/lib/multiplayerState'
 import { applyIntent, EnginePlayerSeed, GameIntent } from '@/lib/gameEngine'
 
-type AppMode = 'selection' | 'host-setup' | 'solo-lobby' | 'host-lobby' | 'host-game' | 'player-join' | 'player-game' | 'game-summary'
+type AppMode = 'selection' | 'host-setup' | 'host-lobby' | 'host-game' | 'player-join' | 'player-game' | 'game-summary'
 
 // Player statistics tracking
 interface PlayerStats {
@@ -318,10 +318,8 @@ export default function App() {
   }
 
   // Mode selection handlers
-  const handleModeSelect = async (mode: 'solo' | 'host' | 'join') => {
-    if (mode === 'solo') {
-      setAppMode('solo-lobby')
-    } else if (mode === 'host') {
+  const handleModeSelect = async (mode: 'host' | 'join') => {
+    if (mode === 'host') {
       setAppMode('host-setup')
     } else if (mode === 'join') {
       setAppMode('player-join')
@@ -791,9 +789,6 @@ export default function App() {
       {appMode === 'host-setup' && (
         <HostSetup onSubmit={handleHostSetupSubmit} onCancel={handleCancelHostSetup} />
       )}
-
-      {/* Solo Lobby */}
-      {appMode === 'solo-lobby' && <Lobby onBegin={handleBegin} />}
 
       {/* Host Lobby - Waiting for players */}
       {appMode === 'host-lobby' && multiplayer.room && (
