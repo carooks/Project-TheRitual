@@ -5,9 +5,11 @@ export interface PlayerStatus {
   name: string
   roleId: RoleId
   alignment: Alignment
-  alive: boolean
+  isAlive: boolean
   isHost?: boolean
   disconnected?: boolean
+  eliminatedRound?: number
+  wasInfected?: boolean
 }
 
 export interface ChatMessage {
@@ -103,6 +105,7 @@ export interface MultiplayerSharedState {
   corruptedIngredients: IngredientId[]  // Ingredients corrupted by TAINTED rituals (unavailable next round)
   infectedPlayers: string[]  // Players secretly converted to Hollow (infection ruleset)
   chatMessages: ChatMessage[]  // Discussion phase chat history
+  roundHistory: Array<{ roundNumber: number; outcome?: RoundOutcome; eliminated?: string }>  // Game history for summary
   winnerAlignment?: Alignment
   winnerReason?: string
   tutorialComplete: boolean

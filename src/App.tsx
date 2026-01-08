@@ -12,6 +12,7 @@ import { GameSummary } from '@/components/GameSummary'
 import { TutorialOverlay } from '@/components/TutorialOverlay'
 import { Tutorial, useTutorial } from '@/components/Tutorial'
 import { SettingsPanel } from '@/components/SettingsPanel'
+import { PostGameSummary } from '@/components/PostGameSummary'
 import { useSupabaseMultiplayer } from '@/hooks/useSupabaseMultiplayer'
 import { useGameTimer } from '@/hooks/useGameTimer'
 import { useKeyboardShortcuts } from '@/hooks/useAccessibility'
@@ -52,6 +53,7 @@ export default function App() {
   const [sharedGameState, setSharedGameState] = useState<MultiplayerSharedState | null>(null)
   const [showTutorial, setShowTutorial] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showPostGameSummary, setShowPostGameSummary] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [lastSession, setLastSession] = useState<any>(null)
   const multiplayer = useSupabaseMultiplayer()
@@ -74,6 +76,18 @@ export default function App() {
       setPlayerRoleId(playerStatus.roleId)
     }
   }, [playerId, sharedGameState])
+
+  // Detect game end and show summary
+  useEffect(() => {
+    if (!sharedGameState) return;
+    if (sharedGameState.phase === 'GAME_END' && !showPostGameSummary) {
+      // Wait a moment before showing summary (let outcome animation finish)
+      const timer = setTimeout(() => {
+        setShowPostGameSummary(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [sharedGameState, showPostGameSummary]);
 
 
   // Game timers
@@ -924,6 +938,26 @@ export default function App() {
           playerStats={gameStats}
           onPlayAgain={handlePlayAgain}
           onBackToMenu={handleBackToMenu}
+        />
+      )}
+
+      {/* Post-Game Summary (Multiplayer) */}
+      {showPostGameSummary && sharedGameState && (
+        <PostGameSummary
+          gameState={sharedGameState}
+          playerNames={
+            multiplayer.room?.players.reduce((acc, p) => {
+              acc[p.id] = p.name;
+              return acc;
+            }, {} as Record<string, string>) || {}
+          }
+          onClose={() => setShowPostGameSummary(false)}
+          onPlayAgain={isHostPlayer ? () => {
+            setShowPostGameSummary(false);
+            setAppMode('host-lobby');
+            multiplayer.disconnect();
+            localStorage.removeItem('multiplayer-session');
+          } : undefined}
         />
       )}
     </div>

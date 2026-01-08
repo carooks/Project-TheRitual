@@ -134,7 +134,7 @@ function startNewGame(players: EnginePlayerSeed[], seed: string, ctx: EngineCont
       name: player.name,
       roleId,
       alignment: roleDef.alignment,
-      alive: true,
+      isAlive: true,
       isHost: player.isHost,
     }
   })
@@ -168,6 +168,7 @@ function startNewGame(players: EnginePlayerSeed[], seed: string, ctx: EngineCont
     corruptedIngredients: [],  // Initialize corruption tracking
     infectedPlayers: [],  // Initialize infection tracking
     chatMessages: [],  // Initialize chat history
+    roundHistory: [],  // Initialize round history for summary
     winnerAlignment: undefined,
     winnerReason: undefined,
     tutorialComplete: false,
@@ -318,7 +319,7 @@ function resolveCurrentRitual(state: MultiplayerSharedState, ctx: EngineContext)
     name: p.name,
     roleId: p.roleId,
     alignment: p.alignment,
-    alive: p.alive,
+    isAlive: p.isAlive,
   }))
 
   const { outcome, deadPlayerIds } = resolveRitual({
@@ -338,9 +339,21 @@ function resolveCurrentRitual(state: MultiplayerSharedState, ctx: EngineContext)
 
   deadPlayerIds.forEach((id) => {
     const status = state.players[id]
-    if (status) {
-      status.alive = false
+    if (status && status.isAlive) {
+      status.isAlive = false
+      status.eliminatedRound = state.roundNumber
+      // Track if they were infected when eliminated
+      if (state.infectedPlayers.includes(id)) {
+        status.wasInfected = true
+      }
     }
+  })
+
+  // Add to round history
+  state.roundHistory.push({
+    roundNumber: state.roundNumber,
+    outcome,
+    eliminated: deadPlayerIds.length > 0 ? deadPlayerIds[0] : undefined,
   })
 
   state.ritualOutcome = outcome
@@ -527,7 +540,7 @@ function applyInfectionMechanic(
 
   // Find eligible Coven players (alive, not already infected)
   const eligiblePlayers = Object.values(state.players).filter(p => 
-    p.alive && 
+    p.isAlive && 
     p.alignment === 'COVEN' && 
     !state.infectedPlayers.includes(p.id)
   )
@@ -692,8 +705,12 @@ function finalizeCouncilVote(state: MultiplayerSharedState, ctx: EngineContext) 
       state.protectionBlessing = null
     } else {
       const target = state.players[eliminatedId]
-      if (target) {
-        target.alive = false
+      if (target && target.isAlive) {
+        target.isAlive = false
+        target.eliminatedRound = state.roundNumber
+        if (state.infectedPlayers.includes(eliminatedId)) {
+          target.wasInfected = true
+        }
       }
       state.protectionBlessing = null
     }
@@ -779,7 +796,7 @@ function concludeRound(state: MultiplayerSharedState, ctx: EngineContext) {
 function checkWinner(
   state: MultiplayerSharedState
 ): { alignment: Alignment; reason: string } | null {
-  const alive = Object.values(state.players).filter((p) => p.alive)
+  const alive = Object.values(state.players).filter((p) => p.isAlive)
   const coven = alive.filter((p) => p.alignment === 'COVEN').length
   const hollow = alive.filter((p) => p.alignment === 'HOLLOW').length
 
@@ -800,12 +817,12 @@ function checkWinner(
 
 function alivePlayerIds(state: MultiplayerSharedState): string[] {
   return Object.values(state.players)
-    .filter((p) => p.alive)
+    .filter((p) => p.isAlive)
     .map((p) => p.id)
 }
 
 function isPlayerAlive(state: MultiplayerSharedState, playerId: string): boolean {
-  return Boolean(state.players[playerId]?.alive)
+  return Boolean(state.players[playerId]?.isAlive)
 }
 
 function cloneState<T>(value: T): T {
