@@ -51,6 +51,7 @@ export interface UseSupabaseMultiplayerReturn {
   sendAction: (action: string, data?: any) => Promise<void>;
   disconnect: () => void;
   reconnect: () => Promise<void>;
+  deleteRoom: () => Promise<void>;
 }
 
 function generateRoomCode(): string {
@@ -636,6 +637,37 @@ export function useSupabaseMultiplayer(): UseSupabaseMultiplayerReturn {
     };
   }, [disconnect]);
 
+  const deleteRoom = useCallback(async () => {
+    if (!roomId) {
+      console.warn('No roomId to delete');
+      return;
+    }
+
+    try {
+      ensureSupabaseConfigured();
+      const supabase = getSupabaseClient();
+      
+      // Delete the room (cascade will delete players and game_states)
+      const { error } = await supabase
+        .from('rooms')
+        .delete()
+        .eq('id', roomId);
+
+      if (error) {
+        console.error('Error deleting room:', error);
+      } else {
+        console.log('Room deleted successfully');
+      }
+      
+      // Disconnect after deleting
+      disconnect();
+    } catch (error) {
+      console.error('Error in deleteRoom:', error);
+      // Still disconnect even if delete fails
+      disconnect();
+    }
+  }, [roomId, disconnect]);
+
   return {
     isConnected,
     connectionError,
@@ -652,5 +684,6 @@ export function useSupabaseMultiplayer(): UseSupabaseMultiplayerReturn {
     sendAction,
     disconnect,
     reconnect,
+    deleteRoom,
   };
 }

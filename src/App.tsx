@@ -432,12 +432,18 @@ export default function App() {
     }
   }
 
-  const handleLeave = () => {
-    multiplayer.disconnect()
-    localStorage.removeItem('multiplayer-session')
-    setSharedGameState(null)
-    setPlayerRoleId(undefined)
-    setAppMode('selection')
+  const handleLeave = async () => {
+    // If we're the host, delete the room entirely
+    if (isHostPlayer && multiplayer.roomId) {
+      await multiplayer.deleteRoom();
+    } else {
+      // Just disconnect if we're a regular player
+      multiplayer.disconnect();
+    }
+    localStorage.removeItem('multiplayer-session');
+    setSharedGameState(null);
+    setPlayerRoleId(undefined);
+    setAppMode('selection');
   }
 
   const handleLeaveGame = useCallback(() => {
