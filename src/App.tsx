@@ -220,6 +220,31 @@ export default function App() {
             })
           }
           break
+        case 'chat_message':
+          if (payload.data?.message) {
+            // Get player name from multiplayer.room
+            const playerInfo = multiplayer.room?.players.find(p => p.id === payload.playerId)
+            const playerName = playerInfo?.name || 'Unknown'
+            dispatchGameIntent({
+              type: 'SEND_CHAT_MESSAGE',
+              playerId: payload.playerId,
+              playerName,
+              message: payload.data.message,
+            })
+          }
+          break
+        case 'chat_reaction':
+          if (payload.data?.emoji) {
+            const playerInfo = multiplayer.room?.players.find(p => p.id === payload.playerId)
+            const playerName = playerInfo?.name || 'Unknown'
+            dispatchGameIntent({
+              type: 'SEND_CHAT_REACTION',
+              playerId: payload.playerId,
+              playerName,
+              emoji: payload.data.emoji,
+            })
+          }
+          break
         default:
           break
       }
@@ -583,6 +608,22 @@ export default function App() {
     }
   }, [multiplayer])
 
+  const sendChatMessage = useCallback(async (message: string) => {
+    try {
+      await multiplayer.sendAction('chat_message', { message })
+    } catch (error) {
+      console.error('Failed to send chat message:', error)
+    }
+  }, [multiplayer])
+
+  const sendChatReaction = useCallback(async (emoji: string) => {
+    try {
+      await multiplayer.sendAction('chat_reaction', { emoji })
+    } catch (error) {
+      console.error('Failed to send chat reaction:', error)
+    }
+  }, [multiplayer])
+
   const requestAdvancePhase = useCallback(() => {
     if (!isHostPlayer) return
     dispatchGameIntent({ type: 'PHASE_TIMEOUT' })
@@ -791,6 +832,8 @@ export default function App() {
               onSubmitIngredient={submitIngredientChoice}
               onSubmitCouncil={submitCouncilVote}
               onSubmitPower={submitPowerTarget}
+              onSendChatMessage={sendChatMessage}
+              onSendChatReaction={sendChatReaction}
               onShowHelp={handleShowTutorial}
               onLeaveGame={handleLeaveGame}
             />

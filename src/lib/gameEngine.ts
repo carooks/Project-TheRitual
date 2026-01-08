@@ -31,6 +31,8 @@ export type GameIntent =
   | { type: 'SUBMIT_INGREDIENT'; playerId: string; ingredientId: IngredientId }
   | { type: 'SUBMIT_POWER_TARGET'; playerId: string; targetId: string }
   | { type: 'SUBMIT_COUNCIL_VOTE'; playerId: string; targetId: string }
+  | { type: 'SEND_CHAT_MESSAGE'; playerId: string; playerName: string; message: string }
+  | { type: 'SEND_CHAT_REACTION'; playerId: string; playerName: string; emoji: string }
   | { type: 'MARK_TUTORIAL_COMPLETE' }
   | { type: 'PHASE_TIMEOUT' }
 
@@ -97,6 +99,16 @@ export function applyIntent(
       handleCouncilVote(next, intent.playerId, intent.targetId, ctx)
       return next
     }
+    case 'SEND_CHAT_MESSAGE': {
+      if (next.phase !== Phase.NOMINATION_DISCUSSION) return next
+      handleChatMessage(next, intent.playerId, intent.playerName, intent.message, ctx)
+      return next
+    }
+    case 'SEND_CHAT_REACTION': {
+      if (next.phase !== Phase.NOMINATION_DISCUSSION) return next
+      handleChatReaction(next, intent.playerId, intent.playerName, intent.emoji, ctx)
+      return next
+    }
     case 'PHASE_TIMEOUT': {
       handlePhaseTimeout(next, ctx)
       return next
@@ -155,6 +167,7 @@ function startNewGame(players: EnginePlayerSeed[], seed: string, ctx: EngineCont
     lastUsedIngredients: {},
     corruptedIngredients: [],  // Initialize corruption tracking
     infectedPlayers: [],  // Initialize infection tracking
+    chatMessages: [],  // Initialize chat history
     winnerAlignment: undefined,
     winnerReason: undefined,
     tutorialComplete: false,
@@ -802,4 +815,65 @@ function cloneState<T>(value: T): T {
     return structured(value) as T
   }
   return JSON.parse(JSON.stringify(value)) as T
+}
+
+// CHAT HANDLERS
+function handleChatMessage(
+  state: MultiplayerSharedState,
+  playerId: string,
+  playerName: string,
+  message: string,
+  ctx: EngineContext
+) {
+  // Only allow chat during discussion phase from alive players
+  if (!isPlayerAlive(state, playerId)) return
+  
+  // Sanitize message (basic)
+  const sanitized = message.trim().slice(0, 200)
+  if (!sanitized) return
+  
+  const chatMessage = {
+    id: `${playerId}-${ctx.now}-${Math.random()}`,
+    playerId,
+    playerName,
+    message: sanitized,
+    timestamp: ctx.now,
+    roundNumber: state.roundNumber,
+    type: 'text' as const,
+  }
+  
+  state.chatMessages.push(chatMessage)
+  
+  // Keep only last 100 messages to prevent memory bloat
+  if (state.chatMessages.length > 100) {
+    state.chatMessages = state.chatMessages.slice(-100)
+  }
+}
+
+function handleChatReaction(
+  state: MultiplayerSharedState,
+  playerId: string,
+  playerName: string,
+  emoji: string,
+  ctx: EngineContext
+) {
+  // Only allow reactions during discussion phase from alive players
+  if (!isPlayerAlive(state, playerId)) return
+  
+  const reactionMessage = {
+    id: `${playerId}-${ctx.now}-${Math.random()}`,
+    playerId,
+    playerName,
+    message: emoji,
+    timestamp: ctx.now,
+    roundNumber: state.roundNumber,
+    type: 'reaction' as const,
+  }
+  
+  state.chatMessages.push(reactionMessage)
+  
+  // Keep only last 100 messages
+  if (state.chatMessages.length > 100) {
+    state.chatMessages = state.chatMessages.slice(-100)
+  }
 }

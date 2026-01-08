@@ -10,6 +10,23 @@ export interface PlayerStatus {
   disconnected?: boolean
 }
 
+export interface ChatMessage {
+  id: string
+  playerId: string
+  playerName: string
+  message: string
+  timestamp: number
+  roundNumber: number
+  type: 'text' | 'reaction' | 'system'
+}
+
+export interface ChatReaction {
+  playerId: string
+  playerName: string
+  emoji: string
+  timestamp: number
+}
+
 export interface VoteRevealEntry {
   targetId: string
   voteNumber: number
@@ -85,6 +102,7 @@ export interface MultiplayerSharedState {
   lastUsedIngredients: Record<string, IngredientId>  // Track last ingredient each player used for cooldown
   corruptedIngredients: IngredientId[]  // Ingredients corrupted by TAINTED rituals (unavailable next round)
   infectedPlayers: string[]  // Players secretly converted to Hollow (infection ruleset)
+  chatMessages: ChatMessage[]  // Discussion phase chat history
   winnerAlignment?: Alignment
   winnerReason?: string
   tutorialComplete: boolean

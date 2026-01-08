@@ -4,6 +4,7 @@ import { INGREDIENTS } from '@/lib/ingredients';
 import { getIngredientPoolForRole, ROLES } from '@/lib/roles';
 import type { MultiplayerPlayer } from '@/hooks/useSupabaseMultiplayer';
 import type { MultiplayerSharedState, PlayerStatus } from '@/lib/multiplayerState';
+import { DiscussionChat } from './DiscussionChat';
 
 interface PlayerGameScreenProps {
   playerId: string;
@@ -19,6 +20,8 @@ interface PlayerGameScreenProps {
   onSubmitIngredient?: (ingredientId: string) => void;
   onSubmitCouncil?: (playerId: string) => void;
   onSubmitPower?: (playerId: string) => void;
+  onSendChatMessage?: (message: string) => void;
+  onSendChatReaction?: (emoji: string) => void;
   onShowHelp?: () => void;
   onLeaveGame?: () => void;
 }
@@ -43,6 +46,8 @@ export function PlayerGameScreen({
   onSubmitIngredient,
   onSubmitCouncil,
   onSubmitPower,
+  onSendChatMessage,
+  onSendChatReaction,
   onShowHelp,
   onLeaveGame,
 }: PlayerGameScreenProps) {
@@ -804,8 +809,22 @@ export function PlayerGameScreen({
               </div>
             )}
 
+            {/* DISCUSSION PHASE - CHAT */}
+            {phase === Phase.NOMINATION_DISCUSSION && (
+              <div style={{ height: '500px' }}>
+                <DiscussionChat
+                  messages={sharedState?.chatMessages || []}
+                  currentPlayerId={playerId}
+                  currentPlayerName={playerName}
+                  onSendMessage={(msg) => onSendChatMessage?.(msg)}
+                  onSendReaction={(emoji) => onSendChatReaction?.(emoji)}
+                  disabled={!playerAlive}
+                />
+              </div>
+            )}
+
             {/* PASSIVE PHASE STATES */}
-            {(phase === Phase.NOMINATION_DISCUSSION || phase === Phase.NOMINATION_REVEAL || phase === Phase.RITUAL_RESOLUTION) && (
+            {(phase === Phase.NOMINATION_REVEAL || phase === Phase.RITUAL_RESOLUTION) && (
               <div style={{
                 padding: '40px 20px',
                 borderRadius: '12px',

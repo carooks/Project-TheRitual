@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { DiscussionChat } from './DiscussionChat';
 import { Phase, RoundState } from '@/lib/types';
 import type { MultiplayerSharedState, PlayerStatus } from '@/lib/multiplayerState';
 
