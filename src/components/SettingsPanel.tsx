@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ColorBlindModeSelector, useColorBlindMode } from '../hooks/useColorBlindMode';
+import { soundManager } from '../lib/sounds';
 import Button from './UI/Button';
 
 interface SettingsPanelProps {
@@ -13,7 +14,10 @@ export function SettingsPanel({ onClose, onShowTutorial }: SettingsPanelProps) {
     return localStorage.getItem('reducedMotion') === 'true';
   });
   const [soundEnabled, setSoundEnabled] = useState(() => {
-    return localStorage.getItem('soundEnabled') !== 'false';
+    return soundManager.isSoundEnabled();
+  });
+  const [masterVolume, setMasterVolume] = useState(() => {
+    return soundManager.getMasterVolume();
   });
 
   const handleReducedMotionChange = (enabled: boolean) => {
@@ -29,7 +33,18 @@ export function SettingsPanel({ onClose, onShowTutorial }: SettingsPanelProps) {
 
   const handleSoundChange = (enabled: boolean) => {
     setSoundEnabled(enabled);
-    localStorage.setItem('soundEnabled', String(enabled));
+    soundManager.setSoundEnabled(enabled);
+    
+    if (enabled) {
+      soundManager.play('ambient-background');
+    } else {
+      soundManager.stopBackgroundMusic();
+    }
+  };
+
+  const handleVolumeChange = (volume: number) => {
+    setMasterVolume(volume);
+    soundManager.setMasterVolume(volume);
   };
 
   return (
@@ -151,6 +166,7 @@ export function SettingsPanel({ onClose, onShowTutorial }: SettingsPanelProps) {
               alignItems: 'center',
               justifyContent: 'space-between',
               cursor: 'pointer',
+              marginBottom: soundEnabled ? '16px' : '0',
             }}>
               <div>
                 <div style={{ 
@@ -180,6 +196,50 @@ export function SettingsPanel({ onClose, onShowTutorial }: SettingsPanelProps) {
                 aria-label="Enable sound effects"
               />
             </label>
+
+            {/* Volume Slider */}
+            {soundEnabled && (
+              <div style={{ marginTop: '8px' }}>
+                <label style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}>
+                    <span style={{ 
+                      color: '#d4af37',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                    }}>
+                      Volume
+                    </span>
+                    <span style={{ 
+                      color: 'rgba(200, 190, 170, 0.9)',
+                      fontSize: '12px',
+                    }}>
+                      {Math.round(masterVolume * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={masterVolume}
+                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                    style={{
+                      width: '100%',
+                      accentColor: '#d4af37',
+                    }}
+                    aria-label="Master volume"
+                  />
+                </label>
+              </div>
+            )}
           </div>
 
           {/* Tutorial */}

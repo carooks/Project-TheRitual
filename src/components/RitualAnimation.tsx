@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { RitualOutcome } from '../lib/types';
+import { soundManager } from '../lib/sounds';
 
 interface RitualAnimationProps {
   outcome: RitualOutcome;
@@ -21,6 +22,15 @@ export function RitualAnimation({ outcome, onComplete, eliminatedPlayerName }: R
   const [showOutcome, setShowOutcome] = useState(false);
 
   useEffect(() => {
+    // Play outcome-specific sound
+    if (outcome === 'PURE') {
+      soundManager.play('ritual-pure');
+    } else if (outcome === 'TAINTED') {
+      soundManager.play('ritual-tainted');
+    } else if (outcome === 'BACKFIRED') {
+      soundManager.play('ritual-backfired');
+    }
+
     // Generate particles with random movement vectors
     const particleCount = 30;
     const newParticles = Array.from({ length: particleCount }, (_, i) => ({
