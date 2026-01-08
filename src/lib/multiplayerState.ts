@@ -54,10 +54,16 @@ export interface MultiplayerPhaseDurations {
   councilVoteMs: number
 }
 
+export interface OptionalRulesets {
+  enableInfection: boolean      // Hidden player conversion mechanic
+  enableCorruption: boolean      // Ingredient degradation mechanic
+}
+
 export interface MultiplayerGameMeta {
   schemaVersion: number
   config: GameConfig
   phaseDurations: MultiplayerPhaseDurations
+  rulesets: OptionalRulesets
 }
 
 export interface MultiplayerSharedState {
@@ -77,6 +83,8 @@ export interface MultiplayerSharedState {
   alignmentInsights: Record<string, AlignmentInsight[]>
   ingredientInsights: Record<string, Array<{ targetId: string; ingredientId: IngredientId; roundNumber: number }>>
   lastUsedIngredients: Record<string, IngredientId>  // Track last ingredient each player used for cooldown
+  corruptedIngredients: IngredientId[]  // Ingredients corrupted by TAINTED rituals (unavailable next round)
+  infectedPlayers: string[]  // Players secretly converted to Hollow (infection ruleset)
   winnerAlignment?: Alignment
   winnerReason?: string
   tutorialComplete: boolean
@@ -92,6 +100,11 @@ export const DEFAULT_PHASE_DURATIONS: MultiplayerPhaseDurations = {
   ingredientChoiceMs: 60_000,
   performerPowerMs: 30_000,
   councilVoteMs: 60_000,
+}
+
+export const DEFAULT_RULESETS: OptionalRulesets = {
+  enableInfection: false,    // Disabled by default - can enable for advanced play
+  enableCorruption: false,   // Disabled by default - can enable for added challenge
 }
 
 export const DEFAULT_GAME_CONFIG: GameConfig = {

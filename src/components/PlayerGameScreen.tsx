@@ -560,30 +560,34 @@ export function PlayerGameScreen({
                 {availableIngredients.map((ingredient) => {
                   const lastUsed = sharedState?.lastUsedIngredients?.[playerId]
                   const onCooldown = lastUsed === ingredient.id
+                  const isCorrupted = sharedState?.corruptedIngredients?.includes(ingredient.id) ?? false
+                  const isDisabled = !playerAlive || Boolean(selectedIngredient) || onCooldown || isCorrupted
                   
                   return (
                   <button
                     key={ingredient.id}
-                    onClick={() => !onCooldown && onSubmitIngredient?.(ingredient.id)}
-                    disabled={!playerAlive || Boolean(selectedIngredient) || onCooldown}
+                    onClick={() => !isDisabled && onSubmitIngredient?.(ingredient.id)}
+                    disabled={isDisabled}
                     style={{
                       backgroundColor: selectedIngredient === ingredient.id
                         ? '#4c1d95'
-                        : onCooldown
+                        : (onCooldown || isCorrupted)
                         ? 'rgba(60, 60, 80, 0.4)'
                         : 'rgba(30, 30, 60, 0.7)',
                       border: `2px solid ${
                         selectedIngredient === ingredient.id 
-                          ? '#d4af37' 
+                          ? '#d4af37'
+                          : isCorrupted
+                          ? 'rgba(75, 85, 99, 0.5)'
                           : onCooldown
                           ? 'rgba(148, 163, 184, 0.3)'
                           : 'rgba(100, 100, 150, 0.5)'
                       }`,
                       borderRadius: '12px',
                       padding: '12px',
-                      cursor: !playerAlive || selectedIngredient || onCooldown ? 'not-allowed' : 'pointer',
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
                       transition: 'all 0.3s',
-                      opacity: !playerAlive || (selectedIngredient && selectedIngredient !== ingredient.id) || onCooldown
+                      opacity: !playerAlive || (selectedIngredient && selectedIngredient !== ingredient.id) || onCooldown || isCorrupted
                         ? 0.4
                         : 1,
                       boxShadow: selectedIngredient === ingredient.id
@@ -612,17 +616,37 @@ export function PlayerGameScreen({
                         ⏳
                       </div>
                     )}
+                    {isCorrupted && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '6px',
+                        right: '6px',
+                        backgroundColor: '#6b7280',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                      }}>
+                        🌫️
+                      </div>
+                    )}
                     <div style={{
                       fontSize: '36px',
                       marginBottom: '8px',
-                      filter: onCooldown ? 'grayscale(80%)' : 'none',
+                      filter: (onCooldown || isCorrupted) ? 'grayscale(80%)' : 'none',
                     }}>
                       {ingredient.icon}
                     </div>
                     <div style={{
                       fontSize: '14px',
                       fontWeight: '600',
-                      color: onCooldown ? '#94a3b8' : '#f1f5f9',
+                      color: (onCooldown || isCorrupted) ? '#94a3b8' : '#f1f5f9',
                       marginBottom: '4px',
                     }}>
                       {ingredient.name}
@@ -636,7 +660,18 @@ export function PlayerGameScreen({
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px',
                       }}>
-                        ⏳ Cooldown
+                        ⏳ Used last round
+                      </div>
+                    ) : isCorrupted ? (
+                      <div style={{
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        color: '#94a3b8',
+                        marginBottom: '4px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                      }}>
+                        🌫️ Corrupted
                       </div>
                     ) : (
                       <div style={{

@@ -13,9 +13,9 @@ BACKFIRE_THRESHOLD = 0.5
 # Infection tuning: gentler, and only for 6+ players (handled in loop)
 INFECTION_START = 1
 INFECTION_END = 3
-MAX_EXTRA_INFECTED = 1
-INFECT_TAINTED = 0.08
-INFECT_BACKFIRE = 0.25
+MAX_EXTRA_INFECTED = 2  # Updated to match gameEngine.ts
+INFECT_TAINTED = 0.15   # Updated to match gameEngine.ts
+INFECT_BACKFIRE = 0.40  # Updated to match gameEngine.ts
 
 PURGING_START = 4
 PURGING_CHANCE = 0.25
@@ -24,6 +24,10 @@ EXORCIST_MIN_ROUND = 3
 EXORCIST_SUSPICION_THRESHOLD = 2.0
 
 GAMES_PER_COUNT = 1000
+
+# Corruption tuning
+CORRUPTION_MIN_INGREDIENTS = 1
+CORRUPTION_MAX_INGREDIENTS = 2
 
 # Ingredient value buckets
 SAFE = [-0.15, -0.10]
@@ -61,8 +65,8 @@ def choose_performer(alive_ids):
     return random.choice(alive_ids)
 
 
-def choose_ingredient(alignment, last_used=None):
-    """Choose ingredient with cooldown constraint."""
+def choose_ingredient(alignment, last_used=None, corrupted_ingredients=None):
+    """Choose ingredient with cooldown and corruption constraints."""
     if alignment == "HOLLOW":
         pool = SAFE + NEUTRAL + CORRUPT + CORRUPT + CORRUPT
     else:
@@ -71,6 +75,10 @@ def choose_ingredient(alignment, last_used=None):
     # Filter out the last used ingredient (cooldown)
     if last_used is not None:
         pool = [val for val in pool if val != last_used]
+    
+    # Filter out corrupted ingredients
+    if corrupted_ingredients:
+        pool = [val for val in pool if val not in corrupted_ingredients]
     
     # If pool is empty (shouldn't happen), allow reuse
     if not pool:
@@ -157,7 +165,7 @@ def maybe_exorcist_action(players, suspicion, exorcist_idx, exorcist_used, round
 # GAME LOOP
 # -------------------------
 
-def run_game(n):
+def run_game(n, enable_infection=False, enable_corruption=False):
     roles = assign_roles(n)
     players = [{
         "alive": True,
@@ -168,6 +176,7 @@ def run_game(n):
 
     suspicion = [0.0 for _ in range(n)]
     last_ingredients = [None for _ in range(n)]  # Track last used ingredient per player
+    corrupted_ingredients = []  # Track corrupted ingredients
     extra_infected = 0
 
     exorcist_idx = None
@@ -182,6 +191,7 @@ def run_game(n):
     tainted_count = 0
     backfire_count = 0
     infection_count = 0
+    corruption_count = 0  # Track corruption events
     ex_attempts = 0
     ex_hits = 0
     ex_suicides = 0
@@ -206,10 +216,14 @@ def run_game(n):
 
         performer = choose_performer(alive_ids)
         
-        # Choose ingredients with cooldown constraint
+        # Choose ingredients with cooldown and corruption constraints
         vals_by_player = {}
         for pid in alive_ids:
-            ingredient = choose_ingredient(players[pid]["alignment"], last_ingredients[pid])
+            ingredient = choose_ingredient(
+                players[pid]["alignment"], 
+                last_ingredients[pid],
+                corrupted_ingredients
+            )
             vals_by_player[pid] = ingredient
             last_ingredients[pid] = ingredient  # Update last used
             
@@ -232,11 +246,28 @@ def run_game(n):
         if outcome == "BACKFIRED":
             players[performer]["alive"] = False
 
-        if n >= 6 and INFECTION_START <= round_num <= INFECTION_END and extra_infected < MAX_EXTRA_INFECTED:
+        # CORRUPTION: Degrade ingredients after tainted rituals
+        if enable_corruption and outcome == "TAINTED":
+            used_ingredients = list(vals_by_player.values())
+            unique_ingredients = list(set(used_ingredients))
+            
+            if unique_ingredients:
+                # Corrupt 1-2 random ingredients
+                corrupt_count = random.randint(CORRUPTION_MIN_INGREDIENTS, CORRUPTION_MAX_INGREDIENTS)
+                corrupt_count = min(corrupt_count, len(unique_ingredients))
+                
+                corrupted_ingredients = random.sample(unique_ingredients, corrupt_count)
+                corruption_count += 1
+        else:
+            # Clear corruption from previous round
+            corrupted_ingredients = []
+
+        # INFECTION: Convert Coven to Hollow after failed rituals
+        if enable_infection and INFECTION_START <= round_num <= INFECTION_END and extra_infected < MAX_EXTRA_INFECTED:
             infected_this_round = False
 
             if outcome == "TAINTED" and random.random() < INFECT_TAINTED:
-                covens = [i for i, p in enumerate(players) if p["alive"] and p["alignment"] == "COVEN"]
+                covens = [i for i, p in enumerate(players) if p["alive"] and p["alignment"] == "COVEN" and not p["infected"]]
                 if covens:
                     target = random.choice(covens)
                     players[target]["alignment"] = "HOLLOW"
@@ -245,7 +276,7 @@ def run_game(n):
                     infected_this_round = True
 
             if outcome == "BACKFIRED" and random.random() < INFECT_BACKFIRE:
-                covens = [i for i, p in enumerate(players) if p["alive"] and p["alignment"] == "COVEN"]
+                covens = [i for i, p in enumerate(players) if p["alive"] and p["alignment"] == "COVEN" and not p["infected"]]
                 if covens:
                     target = random.choice(covens)
                     players[target]["alignment"] = "HOLLOW"
@@ -297,13 +328,14 @@ def run_game(n):
         "tainted": tainted_count,
         "backfired": backfire_count,
         "infection_events": infection_count,
+        "corruption_events": corruption_count,
         "ex_attempts": ex_attempts,
         "ex_hits": ex_hits,
         "ex_suicides": ex_suicides,
     }
 
 
-def run_sims():
+def run_sims(enable_infection=False, enable_corruption=False, ruleset_name="BASELINE"):
     results = defaultdict(lambda: {"COVEN": 0, "HOLLOW": 0})
     stats = defaultdict(lambda: {
         "rounds": 0,
@@ -311,6 +343,7 @@ def run_sims():
         "tainted": 0,
         "backfired": 0,
         "infection_events": 0,
+        "corruption_events": 0,
         "ex_attempts": 0,
         "ex_hits": 0,
         "ex_suicides": 0,
@@ -319,7 +352,7 @@ def run_sims():
 
     for n in range(3, 10):
         for _ in range(GAMES_PER_COUNT):
-            game = run_game(n)
+            game = run_game(n, enable_infection, enable_corruption)
             winner = game["winner"]
             results[n][winner] += 1
 
@@ -329,10 +362,15 @@ def run_sims():
             bucket["tainted"] += game["tainted"]
             bucket["backfired"] += game["backfired"]
             bucket["infection_events"] += game["infection_events"]
+            bucket["corruption_events"] += game["corruption_events"]
             bucket["ex_attempts"] += game["ex_attempts"]
             bucket["ex_hits"] += game["ex_hits"]
             bucket["ex_suicides"] += game["ex_suicides"]
             bucket["games"] += 1
+
+    print(f"\n{'='*60}")
+    print(f"RULESET: {ruleset_name}")
+    print(f"{'='*60}")
 
     for n in range(3, 10):
         cov = results[n]["COVEN"]
@@ -350,7 +388,10 @@ def run_sims():
             f"tainted {bucket['tainted']/games:.2f}, "
             f"backfired {bucket['backfired']/games:.2f}"
         )
-        print(f"Avg infection events per game: {bucket['infection_events']/games:.2f}")
+        if enable_infection:
+            print(f"Avg infection events per game: {bucket['infection_events']/games:.2f}")
+        if enable_corruption:
+            print(f"Avg corruption events per game: {bucket['corruption_events']/games:.2f}")
         print(
             "Exorcist (per game avg): "
             f"attempts {bucket['ex_attempts']/games:.2f}, "
@@ -360,4 +401,23 @@ def run_sims():
 
 
 if __name__ == "__main__":
-    run_sims()
+    print("\n🎭 THE RITUAL - OPTIONAL RULESETS SIMULATION")
+    print("=" * 60)
+    print(f"Running {GAMES_PER_COUNT} games per player count (3-9 players)")
+    print(f"Testing all 4 ruleset configurations\n")
+    
+    # Scenario 1: Baseline (no rulesets)
+    run_sims(enable_infection=False, enable_corruption=False, ruleset_name="BASELINE (No Rulesets)")
+    
+    # Scenario 2: Infection only
+    run_sims(enable_infection=True, enable_corruption=False, ruleset_name="INFECTION ONLY")
+    
+    # Scenario 3: Corruption only
+    run_sims(enable_infection=False, enable_corruption=True, ruleset_name="CORRUPTION ONLY")
+    
+    # Scenario 4: Both rulesets
+    run_sims(enable_infection=True, enable_corruption=True, ruleset_name="INFECTION + CORRUPTION (Maximum Chaos)")
+    
+    print("\n" + "=" * 60)
+    print("SIMULATION COMPLETE")
+    print("=" * 60)

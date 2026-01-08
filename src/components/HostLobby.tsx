@@ -6,7 +6,7 @@ import { MultiplayerPlayer } from '../hooks/useSupabaseMultiplayer';
 interface HostLobbyProps {
   roomCode: string;
   players: MultiplayerPlayer[];
-  onStartGame: () => void;
+  onStartGame: (enableInfection: boolean, enableCorruption: boolean) => void;
   onCancel: () => void;
   onToggleReady: (playerId: string) => Promise<void>;
 }
@@ -14,6 +14,8 @@ interface HostLobbyProps {
 export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleReady }: HostLobbyProps) {
   const [copied, setCopied] = useState(false);
   const [readyingPlayerId, setReadyingPlayerId] = useState<string | null>(null);
+  const [enableInfection, setEnableInfection] = useState(false);
+  const [enableCorruption, setEnableCorruption] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Music player
@@ -383,6 +385,124 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
           )}
         </div>
 
+        {/* Optional Rulesets */}
+        <div style={{
+          marginBottom: '24px',
+          padding: '20px',
+          background: 'linear-gradient(135deg, rgba(76, 29, 149, 0.3) 0%, rgba(30, 30, 60, 0.5) 100%)',
+          border: '2px solid rgba(212, 175, 55, 0.3)',
+          borderRadius: '8px',
+          boxShadow: '0 0 20px rgba(139, 92, 246, 0.2)',
+        }}>
+          <h3 style={{
+            color: '#d4af37',
+            fontSize: '16px',
+            fontWeight: '600',
+            marginBottom: '14px',
+            letterSpacing: '0.06em',
+            textShadow: '0 0 15px rgba(212, 175, 55, 0.5)',
+            fontFamily: 'Georgia, serif',
+          }}>
+            ⚗️ Optional Rulesets
+          </h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Infection Toggle */}
+            <label style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              cursor: 'pointer',
+              padding: '12px',
+              background: enableInfection 
+                ? 'rgba(139, 92, 246, 0.15)' 
+                : 'rgba(30, 30, 60, 0.3)',
+              border: `2px solid ${enableInfection ? 'rgba(139, 92, 246, 0.5)' : 'rgba(212, 175, 55, 0.2)'}`,
+              borderRadius: '6px',
+              transition: 'all 0.3s',
+            }}>
+              <input
+                type="checkbox"
+                checked={enableInfection}
+                onChange={(e) => setEnableInfection(e.target.checked)}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  marginTop: '2px',
+                  cursor: 'pointer',
+                  accentColor: '#8b5cf6',
+                }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  color: '#e9d5ff',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  marginBottom: '4px',
+                  letterSpacing: '0.04em',
+                }}>
+                  🌑 Infection
+                </div>
+                <div style={{
+                  color: '#cbd5e1',
+                  fontSize: '12px',
+                  lineHeight: '1.5',
+                  letterSpacing: '0.02em',
+                }}>
+                  Coven witches may be secretly converted to Hollow after failed rituals (rounds 1-3). Creates paranoia and hidden betrayal.
+                </div>
+              </div>
+            </label>
+
+            {/* Corruption Toggle */}
+            <label style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              cursor: 'pointer',
+              padding: '12px',
+              background: enableCorruption 
+                ? 'rgba(139, 92, 246, 0.15)' 
+                : 'rgba(30, 30, 60, 0.3)',
+              border: `2px solid ${enableCorruption ? 'rgba(139, 92, 246, 0.5)' : 'rgba(212, 175, 55, 0.2)'}`,
+              borderRadius: '6px',
+              transition: 'all 0.3s',
+            }}>
+              <input
+                type="checkbox"
+                checked={enableCorruption}
+                onChange={(e) => setEnableCorruption(e.target.checked)}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  marginTop: '2px',
+                  cursor: 'pointer',
+                  accentColor: '#8b5cf6',
+                }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  color: '#e9d5ff',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  marginBottom: '4px',
+                  letterSpacing: '0.04em',
+                }}>
+                  🌫️ Corruption
+                </div>
+                <div style={{
+                  color: '#cbd5e1',
+                  fontSize: '12px',
+                  lineHeight: '1.5',
+                  letterSpacing: '0.02em',
+                }}>
+                  Ingredients become corrupted after tainted rituals, making them temporarily unusable by all players. Affects everyone equally.
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
         {/* Action Buttons */}
         <div style={{
           display: 'flex',
@@ -417,7 +537,7 @@ export function HostLobby({ roomCode, players, onStartGame, onCancel, onToggleRe
           </button>
           
           <button
-            onClick={onStartGame}
+            onClick={() => onStartGame(enableInfection, enableCorruption)}
             disabled={!canStart}
             style={{
               background: canStart 

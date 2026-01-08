@@ -5,6 +5,7 @@ import {
   AlignmentInsight,
   DEFAULT_GAME_CONFIG,
   DEFAULT_PHASE_DURATIONS,
+  DEFAULT_RULESETS,
   MultiplayerGameMeta,
   MultiplayerSharedState,
   PlayerStatus,
@@ -132,6 +133,7 @@ function startNewGame(players: EnginePlayerSeed[], seed: string, ctx: EngineCont
     schemaVersion: SHARED_STATE_SCHEMA_VERSION,
     config: DEFAULT_GAME_CONFIG,
     phaseDurations: DEFAULT_PHASE_DURATIONS,
+    rulesets: DEFAULT_RULESETS,  // Initialize optional rulesets
   }
 
   const next: MultiplayerSharedState = {
@@ -151,6 +153,8 @@ function startNewGame(players: EnginePlayerSeed[], seed: string, ctx: EngineCont
     alignmentInsights: {},
     ingredientInsights: {},
     lastUsedIngredients: {},
+    corruptedIngredients: [],  // Initialize corruption tracking
+    infectedPlayers: [],  // Initialize infection tracking
     winnerAlignment: undefined,
     winnerReason: undefined,
     tutorialComplete: false,
@@ -245,6 +249,12 @@ function handleIngredientChoice(
     return
   }
   
+  // CORRUPTION: Can't use corrupted ingredients
+  if (state.corruptedIngredients.includes(ingredientId)) {
+    // Silently reject - ingredient is corrupted and unusable
+    return
+  }
+  
   state.ingredientSelections[playerId] = ingredientId
   // Track this ingredient for next round's cooldown
   state.lastUsedIngredients[playerId] = ingredientId
@@ -323,6 +333,19 @@ function resolveCurrentRitual(state: MultiplayerSharedState, ctx: EngineContext)
   state.ritualOutcome = outcome
   state.phase = Phase.RITUAL_RESOLUTION
   state.phaseExpiresAt = ctx.now + state.meta.phaseDurations.revealMs
+
+  // Apply optional rulesets based on ritual outcome
+  const rulesets = state.meta.rulesets
+
+  // CORRUPTION: Degrade ingredients after tainted rituals
+  if (rulesets.enableCorruption && outcome.state === 'TAINTED') {
+    applyIngredientCorruption(state, ingredientPlays, ctx)
+  }
+
+  // INFECTION: Convert Coven to Hollow after failed rituals (early game only)
+  if (rulesets.enableInfection && (outcome.state === 'TAINTED' || outcome.state === 'BACKFIRED')) {
+    applyInfectionMechanic(state, ctx)
+  }
 
   const performerRole = state.players[state.currentPerformerId]?.roleId
 
@@ -446,6 +469,67 @@ function grantRolePower(
       state.pendingPower = null
       state.protectionBlessing = null
   }
+}
+
+// CORRUPTION MECHANIC: Degrade ingredients after tainted rituals
+function applyIngredientCorruption(
+  state: MultiplayerSharedState,
+  ingredientPlays: IngredientPlay[],
+  ctx: EngineContext
+) {
+  // Clear previous round's corruption
+  state.corruptedIngredients = []
+
+  // Corrupt 1-2 random ingredients that were used in the tainted ritual
+  const usedIngredients = ingredientPlays.map(p => p.ingredientId)
+  const uniqueIngredients = [...new Set(usedIngredients)]
+  
+  // Randomly select 1-2 ingredients to corrupt
+  const corruptCount = ctx.random() < 0.5 ? 1 : 2
+  const shuffled = uniqueIngredients.sort(() => ctx.random() - 0.5)
+  const corrupted = shuffled.slice(0, Math.min(corruptCount, uniqueIngredients.length))
+  
+  state.corruptedIngredients = corrupted
+}
+
+// INFECTION MECHANIC: Convert Coven to Hollow after failed rituals
+function applyInfectionMechanic(
+  state: MultiplayerSharedState,
+  ctx: EngineContext
+) {
+  // Only apply infection in early game (rounds 1-3)
+  if (state.roundNumber > 3) return
+
+  // Limit total infections to 2 per game
+  if (state.infectedPlayers.length >= 2) return
+
+  // Calculate infection chance based on ritual outcome
+  const outcome = state.ritualOutcome
+  let infectionChance = 0
+  if (outcome?.state === 'TAINTED') infectionChance = 0.15  // 15%
+  if (outcome?.state === 'BACKFIRED') infectionChance = 0.40  // 40%
+
+  // Roll for infection
+  if (ctx.random() > infectionChance) return
+
+  // Find eligible Coven players (alive, not already infected)
+  const eligiblePlayers = Object.values(state.players).filter(p => 
+    p.alive && 
+    p.alignment === 'COVEN' && 
+    !state.infectedPlayers.includes(p.id)
+  )
+
+  if (eligiblePlayers.length === 0) return
+
+  // Randomly select a player to infect
+  const targetIndex = Math.floor(ctx.random() * eligiblePlayers.length)
+  const target = eligiblePlayers[targetIndex]
+
+  // Convert player to Hollow
+  target.alignment = 'HOLLOW'
+  state.infectedPlayers.push(target.id)
+  
+  // Note: Infection is hidden from players - they maintain their Coven role appearance
 }
 
 function handlePerformerPower(

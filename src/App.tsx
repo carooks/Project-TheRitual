@@ -313,7 +313,7 @@ export default function App() {
     }
   }
 
-  const handleStartGame = async () => {
+  const handleStartGame = async (enableInfection: boolean = false, enableCorruption: boolean = false) => {
     if (!isHostPlayer || !multiplayer.room) return
 
     // Filter out host player unless they explicitly have a non-host role/name
@@ -345,7 +345,13 @@ export default function App() {
         seed,
       }, { now: Date.now() })
       
-      console.log('[handleStartGame] Initial state created:', initialGameState.phase, 'Players:', Object.keys(initialGameState.players).length)
+      // Apply optional rulesets to the initial state
+      initialGameState.meta.rulesets = {
+        enableInfection,
+        enableCorruption,
+      }
+      
+      console.log('[handleStartGame] Initial state created:', initialGameState.phase, 'Players:', Object.keys(initialGameState.players).length, 'Rulesets:', initialGameState.meta.rulesets)
       
       // Set state synchronously
       setSharedGameState(initialGameState)
