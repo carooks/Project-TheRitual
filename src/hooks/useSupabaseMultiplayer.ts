@@ -386,13 +386,15 @@ export function useSupabaseMultiplayer(): UseSupabaseMultiplayerReturn {
       });
 
       // Load game state if it exists
-      const { data: gameStateData } = await supabase
+      const { data: gameStateData, error: gameStateError } = await supabase
         .from('game_states')
         .select('*')
         .eq('room_id', roomDbId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle no rows gracefully
 
-      if (gameStateData && gameStateData.state_json) {
+      if (gameStateError) {
+        console.warn('Error loading game state:', gameStateError);
+      } else if (gameStateData && gameStateData.state_json) {
         console.log('Game state found, dispatching event:', gameStateData.state_json);
         // Emit game state update event
         window.dispatchEvent(new CustomEvent('gameStateUpdate', {
