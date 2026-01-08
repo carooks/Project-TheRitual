@@ -449,3 +449,67 @@ body{
     radial-gradient(ellipse at top, rgba(88, 28, 135, 0.15), transparent 50%),
     radial-gradient(ellipse at bottom, rgba(30, 27, 75, 0.2), transparent 50%);
 }
+
+/* Ritual Animation Keyframes */
+@keyframes particle {
+  0% {
+    transform: translate(0, 0) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--move-x), var(--move-y)) scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in-scale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes screen-shake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-10px, -5px); }
+  20% { transform: translate(10px, 5px); }
+  30% { transform: translate(-10px, 5px); }
+  40% { transform: translate(10px, -5px); }
+  50% { transform: translate(-10px, -5px); }
+  60% { transform: translate(10px, 5px); }
+  70% { transform: translate(-10px, 5px); }
+  80% { transform: translate(10px, -5px); }
+  90% { transform: translate(-10px, -5px); }
+}
+
+.animate-particle {
+  animation: particle 2s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.6s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.screen-shake {
+  animation: screen-shake 0.6s ease-in-out;
+}

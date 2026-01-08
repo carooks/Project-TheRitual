@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import OutcomeCard from '@/components/OutcomeCard'
 import Button from '@/components/UI/Button'
+import { RitualAnimation } from '@/components/RitualAnimation'
 import { GameState } from '@/lib/types'
 
 interface OutcomeScreenProps {
@@ -9,6 +10,7 @@ interface OutcomeScreenProps {
 }
 
 export default function Outcome({ game, goToCouncil }: OutcomeScreenProps) {
+  const [showAnimation, setShowAnimation] = useState(true)
   const { round, players } = game
   const outcome = round.outcome
 
@@ -30,8 +32,20 @@ export default function Outcome({ game, goToCouncil }: OutcomeScreenProps) {
     )
   })
 
+  const eliminatedPlayerName = deadThisRound[0]?.name
+
   return (
-    <div className="p-8 flex flex-col gap-6 max-w-3xl mx-auto">
+    <>
+      {showAnimation && (
+        <RitualAnimation
+          outcome={outcome.type}
+          onComplete={() => setShowAnimation(false)}
+          eliminatedPlayerName={eliminatedPlayerName}
+        />
+      )}
+
+      {!showAnimation && (
+        <div className="p-8 flex flex-col gap-6 max-w-3xl mx-auto">
       <OutcomeCard outcome={outcome} />
       
       {deadThisRound.length > 0 && (
@@ -54,6 +68,8 @@ export default function Outcome({ game, goToCouncil }: OutcomeScreenProps) {
       >
         Proceed to the Council
       </Button>
-    </div>
+        </div>
+      )}
+    </>
   )
 }
