@@ -5,6 +5,7 @@ import { getIngredientPoolForRole, ROLES } from '@/lib/roles';
 import type { MultiplayerPlayer } from '@/hooks/useSupabaseMultiplayer';
 import type { MultiplayerSharedState, PlayerStatus } from '@/lib/multiplayerState';
 import { DiscussionChat } from './DiscussionChat';
+import { SpectatorView } from './SpectatorView';
 
 interface PlayerGameScreenProps {
   playerId: string;
@@ -78,7 +79,7 @@ export function PlayerGameScreen({
   const phase = sharedState?.phase ?? fallbackPhase;
   const round = sharedState?.roundNumber ?? fallbackRound;
   const playerStatus = sharedState?.players[playerId];
-  const playerAlive = playerStatus?.alive ?? true;
+  const playerAlive = playerStatus?.isAlive ?? true;
   const performerId = sharedState?.currentPerformerId ?? null;
   const pendingPower = sharedState?.pendingPower;
   const nominationVote = sharedState?.nominationVotes[playerId];
@@ -102,12 +103,12 @@ export function PlayerGameScreen({
       name: p.name,
       roleId: roleId || 'PROTECTION',
       alignment: 'COVEN',
-      alive: true,
+      isAlive: true,
       isHost: p.isHost,
     }));
   }, [roomPlayers, roleId, sharedState]);
 
-  const alivePlayers = sharedPlayers.filter((p) => p.alive);
+  const alivePlayers = sharedPlayers.filter((p) => p.isAlive);
   const currentPerformer = performerId ? sharedPlayers.find((p) => p.id === performerId) : null;
 
   const availableIngredients = useMemo(() => {
@@ -194,11 +195,21 @@ export function PlayerGameScreen({
       backgroundPosition: 'center',
       overflow: 'auto',
     }}>
+      {/* Spectator Mode Overlay */}
+      {sharedState && !playerAlive && (
+        <SpectatorView
+          gameState={sharedState}
+          playerNames={new Map(roomPlayers.map(p => [p.id, p.name]))}
+          currentPlayerId={playerId}
+        />
+      )}
+
       {/* Dark Overlay */}
       <div style={{
         position: 'absolute',
         inset: 0,
         background: 'linear-gradient(135deg, rgba(5, 8, 20, 0.95), rgba(30, 10, 50, 0.95))',
+        paddingTop: !playerAlive ? '200px' : '0', // Add padding when spectator view is visible
       }} />
 
       {/* Content */}
@@ -207,6 +218,7 @@ export function PlayerGameScreen({
         zIndex: 1,
         minHeight: '100%',
         padding: '16px',
+        paddingTop: !playerAlive ? '220px' : '16px', // Add padding when spectator view is visible
         display: 'flex',
         flexDirection: window.innerWidth >= 768 ? 'row' : 'column',
         gap: '16px',
